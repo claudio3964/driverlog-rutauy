@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct driverlogApp: App {
@@ -13,5 +14,6 @@ struct driverlogApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [Jornada.self, Viaje.self, Guardia.self, Mensaje.self])
     }
 }
