@@ -1,19 +1,20 @@
-//
-//  driverlogApp.swift
-//  driverlog
-//
-//  Created by Tamara Perez Ricardo on 5/8/26.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct driverlogApp: App {
+    // Si ponés 'estaAprobado = true' ves la Main Screen (DashboardView)
+    // Si ponés 'estaAprobado = false' ves la espera de autorización del Admin
+    @State private var estaAprobado: Bool = true
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if estaAprobado {
+               AppMainTabView()
+            } else {
+                DeviceApprovalView(deviceId: "UUID-TEST-2026-COT") {
+                    print("Verificando aprobación...")
+                }
+            }
         }
-        .modelContainer(for: [Jornada.self, Viaje.self, Guardia.self, Mensaje.self])
     }
 }
