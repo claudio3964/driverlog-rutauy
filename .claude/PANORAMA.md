@@ -3,6 +3,12 @@
 > Se lee ANTES de entrar al `Estado_actual.md` puntual de cada repo, al arrancar cualquier sesión nueva.
 > Se actualiza con 2-3 líneas al CERRAR cada sesión, sea cual sea el repo tocado.
 > Este documento es solo lectura/registro — no toca código, no rompe nada.
+>
+> **Este archivo existe en DOS repos** (`app-kilometros-completa` Android y `driverlog-rutauy`
+> iOS) porque no hay carpeta física compartida entre ambos. Si esta sesión edita este archivo,
+> ANTES de cerrar hay que propagar el mismo cambio (texto idéntico o resumen equivalente) a la
+> copia del otro repo y pushear las dos. Un PANORAMA.md desincronizado es peor que no tener
+> PANORAMA.md — ver paso correspondiente en el PROTOCOLO DE CIERRE de cada repo.
 
 ## Regla de secuencia (mientras dure el port a KMP)
 

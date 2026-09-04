@@ -2,9 +2,11 @@
 
 ## Leer siempre al iniciar sesión
 - .claude/PANORAMA.md — orquestación multi-repo (leer ANTES que nada). Nota: es una copia
-  del que vive en el repo Android (`cot_devapp_kilometros-completa-android-koltin`) — puede
-  desincronizarse si se edita solo de un lado; si hay dudas sobre cuál es la versión vigente,
-  preguntar antes de asumir.
+  del que vive en el repo Android (`app-kilometros-completa`) — puede desincronizarse si se
+  edita solo de un lado; si hay dudas sobre cuál es la versión vigente, preguntar antes de
+  asumir. Protocolo de propagación: ver nota al pie del propio PANORAMA.md.
+- .claude/Estado_actual.md — fuente de verdad portable de ESTE repo (qué se hizo, dónde se
+  quedó, próximos pasos). Se reescribe al cerrar cada sesión (protocolo al pie del archivo).
 - El contexto de negocio completo (RUTAUY_CONTEXT.md, PLAN_DESARROLLO_KOTLIN.md) vive en los
   otros dos repos, no en este. Si hace falta ese detalle, pedírselo al usuario.
 
