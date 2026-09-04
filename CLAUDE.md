@@ -20,7 +20,17 @@
 - sharedKit.xcframework: referenciado en el proyecto Xcode vía path relativo
   `../app-kilometros-completa/shared/build/XCFrameworks/debug` — asume que este repo y
   `app-kilometros-completa` son carpetas hermanas en el filesystem (`~/Developer/` en la Mac
-  de trabajo)
+  de trabajo). Es un build artifact (`build/`), nunca se commitea a ningún repo — hay que
+  regenerarlo local en cada máquina/sesión antes de compilar `driverlog.xcodeproj` si no
+  existe o quedó viejo:
+  ```
+  cd ../app-kilometros-completa
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"  # si `java -version` falla
+  ./gradlew :shared:assembleSharedKitDebugXCFramework
+  ```
+  Escribe en `shared/build/XCFrameworks/debug/sharedKit.xcframework`, que es exactamente
+  donde Xcode lo espera — no hace falta copiar nada. (Task hermana `assembleSharedKitReleaseXCFramework`
+  para release; `assembleSharedKitXCFramework` genera ambas variantes.)
 - Branch activo: main
 
 ## Stack

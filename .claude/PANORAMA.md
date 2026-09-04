@@ -30,6 +30,20 @@ de `driverlog` (Embed & Sign) — todavía sin código Swift que lo consuma.
 
 **Próximo paso:** portar `SolapamientoValidator` a `:shared`.
 
+**Antes de abrir `driverlog.xcodeproj` en cualquier máquina/sesión nueva:** el
+`sharedKit.xcframework` es un build artifact de `:shared`, nunca se commitea (ni a este repo
+ni al de Android) — hay que regenerarlo local:
+```
+cd app-kilometros-completa   # (o la ruta a ese repo)
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"  # si falta un JDK en PATH
+./gradlew :shared:assembleSharedKitDebugXCFramework
+```
+El proyecto Xcode de `driverlog` espera el resultado en
+`../app-kilometros-completa/shared/build/XCFrameworks/debug/sharedKit.xcframework` (path
+relativo, asume que `driverlog` y `app-kilometros-completa` son carpetas hermanas) — la task
+ya lo deja ahí, no requiere copiar nada. Si el build de Xcode falla con el framework no
+encontrado o símbolos viejos, esta es la primera causa a revisar.
+
 **Repos que toca:** `app-kilometros-completa` (PC Windows) + `driverlog` (Mac).
 
 ---
@@ -83,6 +97,12 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
 
 ## Log de sesiones (agregar abajo, no reescribir lo de arriba)
 
+- 03/09 — **Deuda detectada, no urgente:** este archivo se dice espejo de un `PANORAMA.md`
+  en `app-kilometros-completa`, pero ese espejo nunca existió ahí (ni en el working tree ni
+  en el historial de git de ese repo). El protocolo de propagación del encabezado asume una
+  copia que no está. Pendiente: crear esa copia en `app-kilometros-completa/.claude/PANORAMA.md`
+  la próxima vez que se edite este archivo desde cualquiera de los dos repos, para que el
+  protocolo deje de ser aspiracional.
 - 19/08 — creado este documento. Sin sesión de código todavía.
 - 19/08 — :shared: SolapamientoValidator portado, conectado (3 call sites) y validado
   (11 tests de paridad + 3 de campo con datos reales, solo lectura). Commits 3bb9693
