@@ -97,12 +97,12 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
 
 ## Log de sesiones (agregar abajo, no reescribir lo de arriba)
 
-- 03/09 — **Deuda detectada, no urgente:** este archivo se dice espejo de un `PANORAMA.md`
-  en `app-kilometros-completa`, pero ese espejo nunca existió ahí (ni en el working tree ni
-  en el historial de git de ese repo). El protocolo de propagación del encabezado asume una
-  copia que no está. Pendiente: crear esa copia en `app-kilometros-completa/.claude/PANORAMA.md`
-  la próxima vez que se edite este archivo desde cualquiera de los dos repos, para que el
-  protocolo deje de ser aspiracional.
+- 03/09 — **Deuda detectada y resuelta el mismo día:** este archivo se decía espejo de un
+  `PANORAMA.md` en `app-kilometros-completa` que en ese momento no existía ahí (ni en el
+  working tree ni en el historial de git de ese repo). Cruzado con otra sesión que creó esa
+  copia el mismo día (commit `06a8662` en `app-kilometros-completa`) — al traerla acá con
+  `git pull --rebase` ambas copias quedaron alineadas de nuevo. El protocolo de propagación
+  del encabezado deja de ser aspiracional a partir de ahora.
 - 19/08 — creado este documento. Sin sesión de código todavía.
 - 19/08 — :shared: SolapamientoValidator portado, conectado (3 call sites) y validado
   (11 tests de paridad + 3 de campo con datos reales, solo lectura). Commits 3bb9693
