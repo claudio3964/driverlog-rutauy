@@ -16,13 +16,6 @@
   `kmTotales = 220.0` y `montoTotal = 1762.68` hardcodeados, copiados de la prueba de
   `ContentView`) y formatear el monto a 2 decimales.
 - **Cola:**
-  - `.claude/PANORAMA.md`: ya sincronizado con la copia Android desde Windows (034bff7), pero
-    la "Corrección 16/09" que trae es falsa. Verificado 29/09 en la Mac: `app-kilometros-completa`
-    (GitHub) ES el repo Android — `main` = Kotlin + `:shared` (HEAD 56e485c), `dev-rebuild-core`
-    = JS/Capacitor legacy (rama huérfana, sin historia común con `main`); no hay redirect y
-    `claudio3964/cot_devapp_kilometros-completa-android-koltin` no existe en GitHub (probable
-    nombre de la carpeta local en Windows). Gravedad baja (docs), pero confunde en cada sesión.
-    Corregir en ambas copias.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
 

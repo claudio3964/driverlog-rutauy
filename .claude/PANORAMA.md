@@ -1,27 +1,25 @@
 # PANORAMA — Orquestación COT Driver (multi-repo)
 
-> **NOTA PARA ESTE REPO (iOS, `driverlog-rutauy`) — agregada 29/09 desde el repo Android:**
-> Último push de este repo antes de esto: 03/09. Próxima sesión Mac: `git pull` antes de tocar
-> nada; adoptar el paso de PANORAMA.md en el protocolo de cierre del `CLAUDE.md`; commitear y
-> pushear el puente Swift↔`:shared` hecho con Gemini (existe solo en la Mac).
-
 > Se lee ANTES de entrar al `Estado_actual.md` puntual de cada repo, al arrancar cualquier sesión nueva.
 > Se actualiza con 2-3 líneas al CERRAR cada sesión, sea cual sea el repo tocado.
 > Este documento es solo lectura/registro — no toca código, no rompe nada.
 >
-> **Este archivo existe en DOS repos** (`cot_devapp_kilometros-completa-android-koltin` Android
-> y `driverlog-rutauy` iOS) porque no hay carpeta física compartida entre ambos. Si esta sesión
+> **Este archivo existe en DOS repos** (`app-kilometros-completa` Android, rama `main`, y
+> `driverlog-rutauy` iOS) porque no hay carpeta física compartida entre ambos. Si esta sesión
 > edita este archivo, ANTES de cerrar hay que propagar el mismo cambio (texto idéntico o resumen
 > equivalente) a la copia del otro repo y pushear las dos. Un PANORAMA.md desincronizado es peor
 > que no tener PANORAMA.md — ver paso correspondiente en el PROTOCOLO DE CIERRE de cada repo.
 >
-> **Corrección 16/09:** este archivo (y el resto del documento) decía `app-kilometros-completa`
-> para referirse al repo Android — error heredado de cuando ese era el nombre de la carpeta local
-> del repo Kotlin en la Mac, antes de que se separara en su propio repo
-> (`cot_devapp_kilometros-completa-android-koltin`). `app-kilometros-completa` (GitHub) es hoy
-> un repo DISTINTO — el JS/Capacitor legacy (branch `dev-rebuild-core`, ver sección 5) — no el
-> núcleo Android. Se corrigieron las referencias de abajo; falta propagar esta misma corrección
-> a la copia en `driverlog-rutauy` (Mac, no accesible desde esta sesión Windows).
+> **Corrección 29/09 (reemplaza la "Corrección 16/09", que era falsa):** en GitHub hay UN solo
+> repo, `claudio3964/app-kilometros-completa`, con dos ramas sin historia común:
+> - `main` = Kotlin + `:shared` — núcleo Android, producción (sección 2).
+> - `dev-rebuild-core` = JS/Capacitor legacy, rama huérfana (sección 5).
+>
+> `cot_devapp_kilometros-completa-android-koltin` NO es un repo: es solo el nombre de la carpeta
+> local del checkout en el PC Windows (confirmado con `git remote -v` en el PC, que apunta a
+> `app-kilometros-completa`). En la Mac la carpeta se llama `app-kilometros-completa`, y ese es
+> el nombre que espera el path relativo de `driverlog.xcodeproj`. Verificado también desde la
+> Mac: `origin` responde sin redirect y `claudio3964/cot_devapp_…` no existe en GitHub.
 
 ## Regla de secuencia (mientras dure el port a KMP)
 
@@ -47,22 +45,22 @@ de `driverlog` (Embed & Sign) — todavía sin código Swift que lo consuma.
 `sharedKit.xcframework` es un build artifact de `:shared`, nunca se commitea (ni a este repo
 ni al de iOS) — hay que regenerarlo local:
 ```
-cd cot_devapp_kilometros-completa-android-koltin   # (o la ruta a este repo)
+cd app-kilometros-completa   # checkout local del repo Android (en Windows la carpeta se llama cot_devapp_kilometros-completa-android-koltin)
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"  # si falta un JDK en PATH
 ./gradlew :shared:assembleSharedKitDebugXCFramework
 ```
 El proyecto Xcode de `driverlog` espera el resultado en
-`../cot_devapp_kilometros-completa-android-koltin/shared/build/XCFrameworks/debug/sharedKit.xcframework`
-(path relativo, asume que `driverlog` y este repo son carpetas hermanas — verificar el path real
-en `project.pbxproj`, puede seguir apuntando al nombre viejo) — la task ya lo deja ahí, no
-requiere copiar nada. Si el build de Xcode falla con el framework no encontrado o símbolos
-viejos, esta es la primera causa a revisar.
+`../app-kilometros-completa/shared/build/XCFrameworks/debug/sharedKit.xcframework`
+(path relativo en `project.pbxproj`, verificado 29/09 — asume que `driverlog` y la carpeta
+`app-kilometros-completa` son hermanas) — la task ya lo deja ahí, no requiere copiar nada.
+Si el build de Xcode falla con el framework no encontrado o símbolos viejos, esta es la
+primera causa a revisar.
 
-**Repos que toca:** `cot_devapp_kilometros-completa-android-koltin` (PC Windows) + `driverlog` (Mac).
+**Repos que toca:** `app-kilometros-completa`, rama `main` (PC Windows) + `driverlog` (Mac).
 
 ---
 
-## 2. Android — `cot_devapp_kilometros-completa-android-koltin` (núcleo, producción real)
+## 2. Android — `app-kilometros-completa`, rama `main` (núcleo, producción real)
 
 **Estado:** sin frente activo bloqueante. Últimos frentes cerrados y validados en campo
 (fail-safe jornada colgada, borrado real de jornadas, Solapamiento vs. jornadas `deleted`,
@@ -102,18 +100,18 @@ negocio se van a tomar con esos datos primero).
 
 ---
 
-## 5. JS/Capacitor legacy — `app-kilometros-completa` (branch `dev-rebuild-core`)
+## 5. JS/Capacitor legacy — `app-kilometros-completa`, rama `dev-rebuild-core` (huérfana)
 
-**Estado:** app de chofer ya migrada 100% a Kotlin (sección 2) — este repo queda como legacy,
+**Estado:** app de chofer ya migrada 100% a Kotlin (sección 2) — esta rama queda como legacy,
 pero sigue teniendo código real cargado desde `www/index.html` (`ui_registro.js`,
 `push_notifications.js`, `sync.js`, `ui_mensajes.js`), mantenido por seguridad aunque no haya
 confirmación de uso real en dispositivos hoy. También contiene el panel admin viejo
 (`www/admin/index.html`), con corte de dominio decidido hacia `cot-admin-next` pero sin
-ejecutar (ver `Estado_actual.md` de este repo).
+ejecutar (ver `Estado_actual.md` de esta rama).
 
 **Trabajo reciente (15-16/09):** cierre del bloque de seguridad RLS de Supabase (ver sección
 Supabase abajo) — los 4 archivos JS de arriba migrados de acceso directo a la tabla con la anon
-key a RPCs `SECURITY DEFINER`, en commits separados de los del repo Kotlin.
+key a RPCs `SECURITY DEFINER`, en commits separados de los de la rama `main` (Kotlin).
 
 **Deuda de repo (no de código), limpiada 16/09:** repo git anidado dentro de sí mismo (clon
 accidental de mayo, borrado) + carpeta de un experimento abandonado de reescribir la app en
@@ -122,7 +120,7 @@ Kotlin dedicado (borrada). `RUTAUY_CONTEXT.md`/`PLAN_DESARROLLO_KOTLIN.md`/`CLAU
 documentos de arranque que el `CLAUDE.md` del repo Kotlin espera encontrar acá — existían en
 disco pero nunca se habían commiteado; commiteados 16/09.
 
-**Repos que toca:** solo este (PC Windows).
+**Repos que toca:** solo esta rama (PC Windows).
 
 ---
 
@@ -147,8 +145,8 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `git pull --rebase` ambas copias quedaron alineadas de nuevo. El protocolo de propagación
   del encabezado deja de ser aspiracional a partir de ahora.
   *(Entrada escrita en la copia de `driverlog`; traída acá el 29/09 para que las dos copias
-  tengan el mismo log. `app-kilometros-completa` es el nombre viejo del repo Android — ver la
-  corrección del 16/09 en el encabezado.)*
+  tengan el mismo log. `app-kilometros-completa` es el repo Android (rama `main`) — ver la
+  corrección del 29/09 en el encabezado.)*
 - 19/08 — creado este documento. Sin sesión de código todavía.
 - 19/08 — :shared: SolapamientoValidator portado, conectado (3 call sites) y validado
   (11 tests de paridad + 3 de campo con datos reales, solo lectura). Commits 3bb9693
@@ -229,3 +227,10 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     otro cliente necesita saber para no divergir (…), agregá una entrada fechada con qué cambió
     y qué implica para el otro lado." **El repo iOS (`driverlog`) tiene que adoptar el mismo paso
     en su `CLAUDE.md` en la próxima sesión en la Mac.**
+- 29/09 (Mac) — Corregida la "Corrección 16/09" del encabezado, que era falsa: en GitHub hay un
+  solo repo, `claudio3964/app-kilometros-completa` (`main` = Kotlin + `:shared`,
+  `dev-rebuild-core` = JS legacy huérfana); `cot_devapp_kilometros-completa-android-koltin` es
+  solo la carpeta local en Windows. Referencias a ese nombre corregidas en todo el archivo. Las
+  dos copias quedan con texto idéntico (se quita de la de `driverlog` la nota del 29/09 para la
+  Mac: sus tres tareas ya están hechas — pull, paso PANORAMA en el `CLAUDE.md` iOS, y el puente
+  Swift↔`:shared` estaba commiteado desde `ba388e6`). Solo documentación, sin impacto en código.
