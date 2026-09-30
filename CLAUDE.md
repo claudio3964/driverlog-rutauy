@@ -75,9 +75,10 @@ limpiarlo sin que lo pida.
 - Siempre leer el archivo antes de modificarlo
 - Compilar (`xcodebuild ... build`, ver sección Build) antes de commit — con el
   `sharedKit.xcframework` regenerado si hubo cambios en `:shared`
-- No mezclar archivos de este repo con los de `app-kilometros-completa` o
-  `cot_devapp_kilometros-completa-android-koltin` en el mismo commit — commits separados en
-  cada repo, aunque sean parte del mismo frente de trabajo
+- No mezclar la rama `dev-rebuild-core` (JS/Capacitor legacy) con `main` (Kotlin + `:shared`)
+  de `app-kilometros-completa`. Y archivos de este repo nunca en el mismo commit que los de
+  `app-kilometros-completa` — commits separados en cada repo, aunque sean parte del mismo
+  frente de trabajo
 - `:shared` es la fuente de verdad para lógica de negocio (cálculo de laudo, validaciones,
   etc.) — no duplicar esa lógica en Swift. Si una pantalla necesita algo que todavía no está
   portado a `:shared`, ese es el frente a levantar primero (ver regla de secuencia en
