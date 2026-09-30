@@ -4,7 +4,7 @@
 > sesión en la Mac. Se REESCRIBE en cada cierre de jornada de trabajo (ver PROTOCOLO al pie).
 > Lo que deja de ser cierto se borra de "Dónde estoy parado hoy", no se acumula.
 >
-> **Última actualización:** 03/09/2026
+> **Última actualización:** 29/09/2026
 
 ## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
 
@@ -12,7 +12,9 @@
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
   (Texto completo en `CLAUDE.md`, sección Reglas.)
-- **Frente actual:** _(sin definir — fijarlo al abrir la próxima sesión)_
+- **Frente actual:** conectar `DashboardView` a `LaudoCalculator` de `sharedKit` (hoy usa
+  `kmTotales = 220.0` y `montoTotal = 1762.68` hardcodeados, copiados de la prueba de
+  `ContentView`) y formatear el monto a 2 decimales.
 - **Cola:**
   - `.claude/PANORAMA.md`: ya sincronizado con la copia Android desde Windows (034bff7), pero
     la "Corrección 16/09" que trae es falsa. Verificado 29/09 en la Mac: `app-kilometros-completa`
@@ -21,6 +23,8 @@
     `claudio3964/cot_devapp_kilometros-completa-android-koltin` no existe en GitHub (probable
     nombre de la carpeta local en Windows). Gravedad baja (docs), pero confunde en cada sesión.
     Corregir en ambas copias.
+  - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
+    `com.driverlog.app.ios` antes de firmar para un iPhone real.
 
 ---
 
@@ -34,6 +38,9 @@
   `DashboardView`, `HistorialView`, `GuardiasListView`, `ViajesListView`, `NuevaGuardiaView`,
   `NuevoViajeView`, `DeviceApprovalView`. No confirmado todavía cuáles están conectadas a
   datos reales de Supabase vs. son solo UI — verificar al retomar.
+- **29/09/2026 — primer build real y primera ejecución en simulador OK.** Puente
+  Swift↔`sharedKit` validado en ejecución (no solo compilación): `LaudoCalculator` devolvió
+  220 km × 8,0122 = 1762,684.
 - **Entorno:** se trabaja en una Mac prestada, repos movidos a `~/Developer/` para evitar
   conflicto con iCloud Desktop sync. El proyecto Xcode espera al repo Android/`:shared` como
   carpeta hermana con el nombre exacto `app-kilometros-completa` (path relativo hardcodeado en
