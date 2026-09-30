@@ -6,6 +6,22 @@
 >
 > **Última actualización:** 03/09/2026
 
+## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
+
+- **Un frente a la vez, hasta cerrarlo.** Todo hallazgo nuevo se anota en la cola (1-2 líneas:
+  qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
+  actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
+  (Texto completo en `CLAUDE.md`, sección Reglas.)
+- **Frente actual:** _(sin definir — fijarlo al abrir la próxima sesión)_
+- **Cola:**
+  - `.claude/PANORAMA.md`: ya sincronizado con la copia Android desde Windows (034bff7), pero
+    la "Corrección 16/09" que trae es falsa. Verificado 29/09 en la Mac: `app-kilometros-completa`
+    (GitHub) ES el repo Android — `main` = Kotlin + `:shared` (HEAD 56e485c), `dev-rebuild-core`
+    = JS/Capacitor legacy (rama huérfana, sin historia común con `main`); no hay redirect y
+    `claudio3964/cot_devapp_kilometros-completa-android-koltin` no existe en GitHub (probable
+    nombre de la carpeta local en Windows). Gravedad baja (docs), pero confunde en cada sesión.
+    Corregir en ambas copias.
+
 ---
 
 ## SNAPSHOT
@@ -62,11 +78,17 @@ Al terminar cada sesión de edición de código en este repo, ANTES de cerrar:
    cierto, no acumular.
 2. Si se agregó una entrada de sesión que vale la pena preservar en detalle, empezar acá
    mismo una sección de CHANGELOG (no existe todavía — crearla la primera vez que haga falta).
-3. Si cambió algo que afecta a los otros repos (Android, panel, `:shared`) → dejarlo anotado
-   acá Y considerar si corresponde tocar `.claude/PANORAMA.md`.
-4. Si esta sesión editó `.claude/PANORAMA.md` → propagar el mismo cambio a la copia que vive
-   en `app-kilometros-completa` (Android) antes de cerrar. Ver nota al pie de PANORAMA.md.
+3. **PANORAMA.md** (paso agregado 29/09, mismo texto que el repo Android): si la sesión
+   cambió algo que el otro cliente necesita saber para no divergir (RPCs nuevas o
+   modificadas, reglas de negocio, forma de `data`/`travels`/`guards`, decisiones de flujo,
+   cambios en `:shared` o en cómo iOS lo consume), agregá una entrada fechada con qué cambió
+   y qué implica para el otro lado. Si no, no se agrega. Cambios internos de una sola
+   plataforma van solo en este archivo.
+4. **Compilar** (`xcodebuild`, ver `CLAUDE.md` sección Build) antes del commit.
 5. **Commit** del/los `.md` junto con el código de la sesión. El md viaja CON el código.
+6. Si esta sesión editó `.claude/PANORAMA.md` → propagar el mismo cambio a la copia que vive
+   en el repo Android (commit y push en cada repo por separado) antes de cerrar. Ver nota al
+   pie de PANORAMA.md.
 
 **Regla de oro:** si abrís una sesión nueva acá y este archivo no refleja la realidad, el
 protocolo falló. Este es la fuente de verdad portable de este repo.
