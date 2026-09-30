@@ -1,14 +1,27 @@
 # PANORAMA — Orquestación COT Driver (multi-repo)
 
+> **NOTA PARA ESTE REPO (iOS, `driverlog-rutauy`) — agregada 29/09 desde el repo Android:**
+> Último push de este repo antes de esto: 03/09. Próxima sesión Mac: `git pull` antes de tocar
+> nada; adoptar el paso de PANORAMA.md en el protocolo de cierre del `CLAUDE.md`; commitear y
+> pushear el puente Swift↔`:shared` hecho con Gemini (existe solo en la Mac).
+
 > Se lee ANTES de entrar al `Estado_actual.md` puntual de cada repo, al arrancar cualquier sesión nueva.
 > Se actualiza con 2-3 líneas al CERRAR cada sesión, sea cual sea el repo tocado.
 > Este documento es solo lectura/registro — no toca código, no rompe nada.
 >
-> **Este archivo existe en DOS repos** (`app-kilometros-completa` Android y `driverlog-rutauy`
-> iOS) porque no hay carpeta física compartida entre ambos. Si esta sesión edita este archivo,
-> ANTES de cerrar hay que propagar el mismo cambio (texto idéntico o resumen equivalente) a la
-> copia del otro repo y pushear las dos. Un PANORAMA.md desincronizado es peor que no tener
-> PANORAMA.md — ver paso correspondiente en el PROTOCOLO DE CIERRE de cada repo.
+> **Este archivo existe en DOS repos** (`cot_devapp_kilometros-completa-android-koltin` Android
+> y `driverlog-rutauy` iOS) porque no hay carpeta física compartida entre ambos. Si esta sesión
+> edita este archivo, ANTES de cerrar hay que propagar el mismo cambio (texto idéntico o resumen
+> equivalente) a la copia del otro repo y pushear las dos. Un PANORAMA.md desincronizado es peor
+> que no tener PANORAMA.md — ver paso correspondiente en el PROTOCOLO DE CIERRE de cada repo.
+>
+> **Corrección 16/09:** este archivo (y el resto del documento) decía `app-kilometros-completa`
+> para referirse al repo Android — error heredado de cuando ese era el nombre de la carpeta local
+> del repo Kotlin en la Mac, antes de que se separara en su propio repo
+> (`cot_devapp_kilometros-completa-android-koltin`). `app-kilometros-completa` (GitHub) es hoy
+> un repo DISTINTO — el JS/Capacitor legacy (branch `dev-rebuild-core`, ver sección 5) — no el
+> núcleo Android. Se corrigieron las referencias de abajo; falta propagar esta misma corrección
+> a la copia en `driverlog-rutauy` (Mac, no accesible desde esta sesión Windows).
 
 ## Regla de secuencia (mientras dure el port a KMP)
 
@@ -32,23 +45,24 @@ de `driverlog` (Embed & Sign) — todavía sin código Swift que lo consuma.
 
 **Antes de abrir `driverlog.xcodeproj` en cualquier máquina/sesión nueva:** el
 `sharedKit.xcframework` es un build artifact de `:shared`, nunca se commitea (ni a este repo
-ni al de Android) — hay que regenerarlo local:
+ni al de iOS) — hay que regenerarlo local:
 ```
-cd app-kilometros-completa   # (o la ruta a ese repo)
+cd cot_devapp_kilometros-completa-android-koltin   # (o la ruta a este repo)
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"  # si falta un JDK en PATH
 ./gradlew :shared:assembleSharedKitDebugXCFramework
 ```
 El proyecto Xcode de `driverlog` espera el resultado en
-`../app-kilometros-completa/shared/build/XCFrameworks/debug/sharedKit.xcframework` (path
-relativo, asume que `driverlog` y `app-kilometros-completa` son carpetas hermanas) — la task
-ya lo deja ahí, no requiere copiar nada. Si el build de Xcode falla con el framework no
-encontrado o símbolos viejos, esta es la primera causa a revisar.
+`../cot_devapp_kilometros-completa-android-koltin/shared/build/XCFrameworks/debug/sharedKit.xcframework`
+(path relativo, asume que `driverlog` y este repo son carpetas hermanas — verificar el path real
+en `project.pbxproj`, puede seguir apuntando al nombre viejo) — la task ya lo deja ahí, no
+requiere copiar nada. Si el build de Xcode falla con el framework no encontrado o símbolos
+viejos, esta es la primera causa a revisar.
 
-**Repos que toca:** `app-kilometros-completa` (PC Windows) + `driverlog` (Mac).
+**Repos que toca:** `cot_devapp_kilometros-completa-android-koltin` (PC Windows) + `driverlog` (Mac).
 
 ---
 
-## 2. Android — `app-kilometros-completa` (núcleo, producción real)
+## 2. Android — `cot_devapp_kilometros-completa-android-koltin` (núcleo, producción real)
 
 **Estado:** sin frente activo bloqueante. Últimos frentes cerrados y validados en campo
 (fail-safe jornada colgada, borrado real de jornadas, Solapamiento vs. jornadas `deleted`,
@@ -88,6 +102,30 @@ negocio se van a tomar con esos datos primero).
 
 ---
 
+## 5. JS/Capacitor legacy — `app-kilometros-completa` (branch `dev-rebuild-core`)
+
+**Estado:** app de chofer ya migrada 100% a Kotlin (sección 2) — este repo queda como legacy,
+pero sigue teniendo código real cargado desde `www/index.html` (`ui_registro.js`,
+`push_notifications.js`, `sync.js`, `ui_mensajes.js`), mantenido por seguridad aunque no haya
+confirmación de uso real en dispositivos hoy. También contiene el panel admin viejo
+(`www/admin/index.html`), con corte de dominio decidido hacia `cot-admin-next` pero sin
+ejecutar (ver `Estado_actual.md` de este repo).
+
+**Trabajo reciente (15-16/09):** cierre del bloque de seguridad RLS de Supabase (ver sección
+Supabase abajo) — los 4 archivos JS de arriba migrados de acceso directo a la tabla con la anon
+key a RPCs `SECURITY DEFINER`, en commits separados de los del repo Kotlin.
+
+**Deuda de repo (no de código), limpiada 16/09:** repo git anidado dentro de sí mismo (clon
+accidental de mayo, borrado) + carpeta de un experimento abandonado de reescribir la app en
+Kotlin/Compose dentro del wrapper Capacitor de este mismo repo, previo a que existiera el repo
+Kotlin dedicado (borrada). `RUTAUY_CONTEXT.md`/`PLAN_DESARROLLO_KOTLIN.md`/`CLAUDE.md` —
+documentos de arranque que el `CLAUDE.md` del repo Kotlin espera encontrar acá — existían en
+disco pero nunca se habían commiteado; commiteados 16/09.
+
+**Repos que toca:** solo este (PC Windows).
+
+---
+
 ## Supabase
 
 No es un frente aparte — es infraestructura compartida. El trabajo sobre RLS/RPCs queda
@@ -97,12 +135,20 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
 
 ## Log de sesiones (agregar abajo, no reescribir lo de arriba)
 
+- 03/09 — desalineamiento del espejo resuelto: la copia de este archivo en `driverlog` decía
+  ser espejo de este, pero este archivo todavía no existía acá (creado recién en el commit
+  `06a8662`, cruzado con una sesión en `driverlog` que investigaba el mismo día). Ambas copias
+  quedan alineadas de nuevo con este commit; agregado también el bloque de regeneración de
+  `sharedKit.xcframework` en la sección 1, que la copia de `driverlog` ya tenía.
 - 03/09 — **Deuda detectada y resuelta el mismo día:** este archivo se decía espejo de un
   `PANORAMA.md` en `app-kilometros-completa` que en ese momento no existía ahí (ni en el
   working tree ni en el historial de git de ese repo). Cruzado con otra sesión que creó esa
   copia el mismo día (commit `06a8662` en `app-kilometros-completa`) — al traerla acá con
   `git pull --rebase` ambas copias quedaron alineadas de nuevo. El protocolo de propagación
   del encabezado deja de ser aspiracional a partir de ahora.
+  *(Entrada escrita en la copia de `driverlog`; traída acá el 29/09 para que las dos copias
+  tengan el mismo log. `app-kilometros-completa` es el nombre viejo del repo Android — ver la
+  corrección del 16/09 en el encabezado.)*
 - 19/08 — creado este documento. Sin sesión de código todavía.
 - 19/08 — :shared: SolapamientoValidator portado, conectado (3 call sites) y validado
   (11 tests de paridad + 3 de campo con datos reales, solo lectura). Commits 3bb9693
@@ -119,3 +165,67 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   SupabaseService.kt. Pendiente: conectar MensajesPollingWorker.kt al contrato nuevo
   (no se tocó hoy — próximo paso). Commits c21cd0c (frente) + 6c8cec4 (mandato de
   sesión), ambos pusheados.
+- 15/09 — Supabase: cerrado `choferes_insert` (policy dejaba insertar a `anon` con
+  `empresa_id='cot'` como único check). RPC `registrar_chofer` + policy restringida a
+  `authenticated`. Kotlin y JS legacy (`ui_registro.js`) migrados los dos, commits
+  separados, 3 pruebas contra Supabase real. Encontrado de rebote: mismo patrón abierto
+  en `choferes_update`, no tocado esa sesión.
+- 16/09 — Supabase: cerrado el resto del bloque RLS — `choferes_update` (3 RPCs),
+  `jornadas_update`+`jornadas_insert` (1 RPC, `sincronizar_jornada_js`, cubre las dos),
+  `mensajes_select`/`mensajes_update` (5 RPCs). Kotlin y JS legacy (`push_notifications.js`,
+  `sync.js`, `ui_mensajes.js`) migrados, commits separados por repo. Todo validado con
+  pruebas puntuales contra Supabase real (INSERT/UPDATE directo con `anon` bloqueado,
+  RPCs funcionando). No queda ningún punto abierto de este bloque.
+- 16/09 — Limpieza de documentación/repo (sin tocar código de app ni Supabase): confirmado
+  que `.claude/Estado_actual.md` es la única copia real (la de la raíz, congelada desde
+  17/08, se eliminó); corregida la referencia residual a `choferes_insert` como pendiente
+  (ya cerrado); puntero a `DISENO_INTEGRIDAD_LAUDO.md` reemplazado por una nota (el diseño
+  se hizo en conversación, nunca se bajó a archivo); este mismo archivo corregido (ver nota
+  al pie del header); `CLAUDE.md` de este repo y del JS legacy limpiados del preámbulo sin
+  ejecutar que tenían pegado (ver sección 5); repo git anidado + experimento Kotlin
+  abandonado borrados del repo JS legacy; 4 documentos de arranque de ese repo commiteados
+  por primera vez.
+- 17/09–29/09 — **Consolidado de lo que afecta a cualquier cliente (Android/iOS).** Detalle
+  en `Estado_actual.md` del repo Android.
+  - **Auth del chofer (17-23/09):** login con **legajo + PIN** por Edge Function `login-chofer`
+    (alta con código de enrolamiento: `activar-chofer`; renovación: `refresh-chofer`). Devuelve
+    un JWT propio del chofer que viaja en el header **`X-Chofer-Token`** y se verifica en Postgres
+    (`chofer_actual()`), más un refresh token. **Desde el 29/09 `login-chofer` devuelve además
+    `nombre`, `base` y `tipo`** (el cliente los guarda como perfil). Las Edge Functions de chofer
+    se deployan con `--no-verify-jwt`.
+  - **Keys (19-20/09):** el cliente usa la **publishable key nueva** (`sb_publishable_…`) en
+    `apikey`; las keys legacy en formato JWT (anon / service_role) están **deshabilitadas** y el
+    secreto HS256 legacy revocado. Ningún cliente puede depender de ellas.
+  - **RLS / RPC (23-25/09):** `jornadas_select` y `choferes_select` sin rama `anon`;
+    `estado_jornada` exige `X-Chofer-Token`; `sincronizar_jornada_js` y `registrar_chofer` sin
+    `EXECUTE` para anon. **Tanda 1 (25/09):** las 9 RPC que escriben `jornadas.data` exigen
+    `X-Chofer-Token` del chofer dueño (o admin de la misma empresa para las de edición); sin
+    token → 403 (28000), jornada ajena → 42501, inexistente → 404 con `code`
+    (`JORNADA_NOT_FOUND`/`VIAJE_NOT_FOUND`/…), `data` mal formado → 409 `DATA_INVALIDA`. Ya no
+    hay 204 silencioso sobre algo que no existe.
+  - **Activación de viajes (29/09): solo por la RPC `activar_viaje(p_viaje_id, p_inicio_real,
+    p_motivo)`.** Guard P→E (si el viaje no está `programado`, no hace nada y devuelve
+    `activado:false`). `inicioReal` = **hora oficial** (`inicioProgramado`); en "Iniciar ahora"
+    (respaldo sin señal) vale `min(hora del toque, inicioProgramado)` con **cota de 10 min**: si
+    el adelanto es mayor, se usa la hora oficial y queda `ajuste = 'ADELANTO_MAYOR_AL_LIMITE'`.
+    `p_inicio_real` se captura en el toque y viaja en la cola offline (nunca se recalcula);
+    `p_motivo` = motivo que se le pide al chofer si arranca antes de hora. La RPC registra
+    `travels[i].activacion = {por, servidor_en, inicio_solicitado, ajuste, motivo}`.
+  - **Cancelación:** un **viaje en curso no se cancela**, solo se edita desde el panel (edición
+    auditada); en Android se elimina `cancelarViajeEnCurso` (A7). La **anulación es solo desde P
+    y la hace el panel**. Finalizado y cancelado son terminales.
+  - **Varios choferes en un servicio:** `travels[i].servicio_id` + `rol` =
+    `'dupla' | 'relevado' | 'relevo'` (null en viajes normales). Relevo: el viaje original se
+    cierra en F con `rol = 'relevado'` a la hora del cambio y el nuevo arranca en curso con
+    `rol = 'relevo'`; nunca se mueve un viaje entre jornadas. Dupla: los dos viajes con
+    `rol = 'dupla'` (laudo sin cambios).
+  - **Cron D5 en producción (29/09):** `enviar-push-viaje` activa por fecha + hora
+    (`inicioProgramado`) con la misma `activar_viaje`, para todos los choferes (tengan o no token
+    de push), y ya no hace PATCH del `data` entero. Si el sync le trae al cliente un viaje ya
+    `en_curso`, el cliente no lo vuelve a activar.
+  - **Regla de trabajo nueva:** un frente a la vez hasta cerrarlo (ver `CLAUDE.md` del repo
+    Android).
+  - **Protocolo de cierre, paso nuevo (29/09):** "PANORAMA.md: si la sesión cambió algo que el
+    otro cliente necesita saber para no divergir (…), agregá una entrada fechada con qué cambió
+    y qué implica para el otro lado." **El repo iOS (`driverlog`) tiene que adoptar el mismo paso
+    en su `CLAUDE.md` en la próxima sesión en la Mac.**
