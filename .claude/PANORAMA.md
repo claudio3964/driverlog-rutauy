@@ -234,3 +234,26 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   dos copias quedan con texto idéntico (se quita de la de `driverlog` la nota del 29/09 para la
   Mac: sus tres tareas ya están hechas — pull, paso PANORAMA en el `CLAUDE.md` iOS, y el puente
   Swift↔`:shared` estaba commiteado desde `ba388e6`). Solo documentación, sin impacto en código.
+- 30/09 (Windows) — **Fase 0 tanda 2 aplicada en prod.** Para el otro cliente:
+  `crear_jornada`, `marcar_mensaje_leido`, `responder_mensaje`,
+  `enviar_mensaje_urgente_jornada_colgada`/`_borrada`, `obtener_mensajes_pendientes` y
+  `obtener_estado_mensaje` **exigen `X-Chofer-Token`** (sin token → 403 `28000`; admin → 42501).
+  `crear_jornada` solo acepta la jornada propia: `p_legajo` = legajo del token, `p_chofer_id` =
+  `p_legajo`, `p_empresa_id` = empresa del token, `p_order_number` = `<legajo>-YYYYMMDD` de
+  `p_fecha` (si no, 42501). `responder_mensaje` **solo toma `viajeId`/`guardiaId` de `p_data`** y
+  los mergea sobre el `data` actual (el resto se ignora; sin ninguno → 400). `marcar`/`responder`
+  sobre un id inexistente o ajeno → 404 `MENSAJE_NOT_FOUND` (antes `200 false`).
+  `obtener_mensajes_pendientes` ignora `p_legajo` y usa el del token; `obtener_estado_mensaje` de
+  un mensaje ajeno → conjunto vacío. Firmas y tipos de retorno sin cambios.
+- 01/10 (Windows) — **Bug 1 3a.1: trigger de `travels` en prod** (aplicado 30/09,
+  `20260930010000_bug1_3a1_trigger_travels.sql`; validado en campo 01/10). **Aplica a todos los
+  clientes** (Android, iOS, panel, cron): toda escritura de `jornadas.data.travels` pasa por
+  `trg_jornadas_travels`. Máquina de estados P/E/F/C — solo P→E, P→C, E→F (P→F, E→C, E→P y
+  cualquier salida de F o C → **409 `TRANSICION_INVALIDA`**); `inicioReal`/`finReal` ya seteados
+  (número > 0 o texto no vacío; 0 y null cuentan como vacío) no cambian → 409 `CAMPO_INMUTABLE`;
+  ningún viaje se borra de `travels` → 409 `VIAJE_ELIMINADO`; entrar a F exige `inicioReal` y
+  `finReal`. `agregar_viaje_a_jornada` es idempotente por id. **Para iOS:** no replicar el patrón
+  de activación de Android (worker que activa sin chequear status ni el resultado de la RPC, y GPS
+  arrancado desde la UI por estado local antes de la confirmación del servidor): en campo 01/10 un
+  viaje cancelado recibió el 409 pero quedó en curso en el celu, con GPS y notificación. Activar
+  solo desde P y tocar estado local/GPS recién con 2xx. Ver 3b en `Estado_actual.md` de Android.
