@@ -8,6 +8,10 @@
 
 ## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
 
+- **01/10 — ANTES de la próxima sesión en la Mac: `git pull`.** Desde Windows se commiteó
+  `.claude/PANORAMA.md` (entradas 30/09: fase 0 tanda 2 -- RPC de jornada/mensajes exigen
+  `X-Chofer-Token`; y 01/10: trigger de `travels` en prod + no replicar el patrón de activación
+  de Android). Leer esas dos entradas antes de tocar activación de viajes o mensajes en iOS.
 - **Un frente a la vez, hasta cerrarlo.** Todo hallazgo nuevo se anota en la cola (1-2 líneas:
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
