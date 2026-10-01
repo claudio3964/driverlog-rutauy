@@ -257,3 +257,16 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   arrancado desde la UI por estado local antes de la confirmación del servidor): en campo 01/10 un
   viaje cancelado recibió el 409 pero quedó en curso en el celu, con GPS y notificación. Activar
   solo desde P y tocar estado local/GPS recién con 2xx. Ver 3b en `Estado_actual.md` de Android.
+- 01/10 (Windows, cont.) — **Bug 1 3a.2 aplicada en prod: RPC `editar_viaje_panel`.** Para todos
+  los clientes: `editar_viaje_panel(p_viaje_id, p_motivo, p_status, p_inicio_real, p_fin_real) →
+  jsonb` corrige un viaje con auditoría. **Solo admin** (sesión del panel; chofer, anon y
+  service_role → 42501). **Solo jornadas cerradas de días anteriores** (hoy o futura → 409
+  `JORNADA_EN_CURSO`; `closed:false` de cualquier fecha → 409 `JORNADA_ABIERTA`; borrada → 409
+  `JORNADA_BORRADA`). Permite F↔C, E→F (varados, exige `finReal`) y corregir `inicioReal`/`finReal`;
+  P → `ESTADO_NO_EDITABLE`, E→C → `TRANSICION_INVALIDA`; motivo ≥ 10 caracteres. Auditoría en
+  `private.ediciones_viaje` (no expuesta por la API). **Clave nueva en `jornadas.data`:
+  `totalsDesactualizados = {at, edicion_id}`** — se agrega cuando la jornada editada tenía
+  `totalsSnapshot`; el snapshot NO se recalcula. App Android, iOS y panel deberían mostrar que los
+  totales de esa jornada están desactualizados (fuera de 3a.2; hoy nadie la lee). La reapertura y
+  `cerrar_jornada` la conservan (merge). Los datos de plan de viajes P siguen por
+  `editar_viaje_en_jornada`. UI del panel: 3a.3.
