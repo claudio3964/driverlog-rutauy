@@ -270,3 +270,24 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   totales de esa jornada están desactualizados (fuera de 3a.2; hoy nadie la lee). La reapertura y
   `cerrar_jornada` la conservan (merge). Los datos de plan de viajes P siguen por
   `editar_viaje_en_jornada`. UI del panel: 3a.3.
+- 02/10 (Windows) — **Bug 1 3b.1 cerrado en campo (Android, rama `fix/bug1-3b1` `d446e26`, SIN
+  merge a main todavía — falta 3b.1-bis).** Lo que el otro lado necesita saber:
+  - **`:shared` nuevo: `TransicionesViaje`** (`shared/.../data/TransicionesViaje.kt`, 7 tests / 66
+    filas): transiciones P/E/F/C, `decidirMerge(local, remoto)` (C del servidor gana sobre P/E
+    local; F↔C no se pisa — conflicto para 3b.3) e `interpretarActivacion(activado, status_actual)`.
+    **iOS debería usarlo** para el sync y la activación en vez de reglas propias. Tests de `:shared`
+    pendientes de correr en la Mac (en Windows no compila iOS) antes de regenerar el xcframework.
+  - **Activación = servidor primero:** `activar_viaje` y recién con `activado=true` (o
+    `status_actual=en_curso`) se toca el estado local, el GPS y la notificación; con
+    `activado=false status_actual=cancelado|finalizado` el local adopta ese estado sin GPS.
+    Validado en campo (caso 2).
+  - **"Iniciar ahora": `p_inicio_real` = hora del click del botón de la card** (decisión explícita
+    02/10), no la de confirmar el diálogo de motivo; queda en `activacion.inicio_solicitado`. El
+    servidor aplica la cota de 10 min (`ajuste=ADELANTO_MAYOR_AL_LIMITE` → hora programada).
+    Motivo ("Orden de tránsito" / "Otro" + detalle) en `p_motivo` cuando es antes de hora.
+  - **El sync trae los cancelados** (antes el parser los descartaba) y conserva `coche`,
+    `origenCreacion`, `cierreAutomatico`.
+  - **`cancelar_viaje` (mensaje del panel) solo se aplica sobre P**; sobre E/F se marca leído y se
+    ignora. **Ojo, hallazgo ALTA:** "Anular asignación" del panel NO escribe el C en el servidor,
+    solo manda el mensaje; el C lo escribe el cliente al procesarlo. iOS debe hacer lo mismo
+    mientras no se corrija (va al parate, candidato a 3b.3).
