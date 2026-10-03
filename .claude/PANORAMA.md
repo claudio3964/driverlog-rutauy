@@ -291,3 +291,28 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     ignora. **Ojo, hallazgo ALTA:** "Anular asignación" del panel NO escribe el C en el servidor,
     solo manda el mensaje; el C lo escribe el cliente al procesarlo. iOS debe hacer lo mismo
     mientras no se corrija (va al parate, candidato a 3b.3).
+- 03/10 (Mac) — **`:shared`: contrato de auth del chofer definido (sin implementación todavía).**
+  `ChoferAuthApi` (interfaz) + DTOs `@Serializable` (`SesionChoferDto`, `AccessTokenDto`,
+  `ChoferAuthErrorDto`, requests de las 3 operaciones) en
+  `shared/src/commonMain/.../data/auth/`, mismo patrón que `MensajesApi.kt` — describe el wire
+  de `login-chofer`/`activar-chofer`/`refresh-chofer` (Edge Functions ya en producción, ver
+  entrada 17/09-29/09 más abajo) tal como las consume hoy `SupabaseService.kt` en `:app`, pero
+  **no reemplaza ese código ni agrega ningún call site nuevo** — es solo el contrato, a la
+  espera de que alguna sesión lo implemente (`SupabaseChoferAuthApi` envolviendo el
+  `SupabaseService` existente, mismo criterio que `SupabaseMensajesApi`). `refresh_expires_at`
+  confirmado como string ISO 8601 (`refreshExpiresAt.toISOString()` en
+  `login-chofer/index.ts:162/192`), no epoch numérico. `Json` compartido nuevo
+  (`ChoferAuthJson`, `ignoreUnknownKeys=true`, sin `isLenient` — a diferencia de `MensajesJson`
+  no hay acá ningún campo con el quirk numérico-como-string de `id` en Mensajes). 18 tests de
+  decodificación en `ChoferAuthDecodingTest.kt`, con fixtures armados leyendo la fuente de cada
+  Edge Function (no son capturas de producción como los mensajes 507/509 — aclarado en el
+  propio test). Validado solo contra el target iOS (`iosSimulatorArm64Test`, 18/18 OK); el
+  target Android (`testAndroidHostTest`) no corrió por falta de Android SDK en esta Mac —
+  pendiente correrlo en el PC Windows antes de implementar `ChoferAuthApi` en `:app` (ver cola
+  de `Estado_actual.md` del repo Android). Nada de esto cambia el comportamiento real de
+  Android hoy. Mismo pendiente de fondo que el que deja la entrada 02/10 de Windows para
+  `TransicionesViaje` (tests de `:shared` que solo corren completos del lado contrario a donde
+  se escribieron) — candidato a resolver junto. **Para iOS:** el contrato ya describe el wire
+  real de `login-chofer`/`activar-chofer`/`refresh-chofer` tal como está en producción — cuando
+  se retome código Swift real, este es el shape a seguir del lado del puente Kotlin↔Swift, no
+  hace falta re-derivarlo de las Edge Functions.
