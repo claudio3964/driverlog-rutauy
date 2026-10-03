@@ -316,3 +316,23 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   real de `login-chofer`/`activar-chofer`/`refresh-chofer` tal como está en producción — cuando
   se retome código Swift real, este es el shape a seguir del lado del puente Kotlin↔Swift, no
   hace falta re-derivarlo de las Edge Functions.
+- 03/10 (Mac) — **`:shared`: SKIE agregado + `FakeChoferAuthApi`.** Plugin **SKIE 0.10.15**
+  (genera API Swift idiomática desde el `.xcframework` — enums en vez de sealed classes
+  `NSError`-like, `async/await` en vez de completion handlers, etc. — para el consumo desde
+  `driverlog`). Confirmado en el código fuente de SKIE que `0.10.15` soporta Kotlin **2.0.21**
+  (`kotlin` de este proyecto), que es además su `klibCompiler` base. **Analítica de upload
+  desactivada** (`skie { analytics { disableUpload.set(true) } }` en
+  `shared/build.gradle.kts`) — confirmado que `skieUploadAnalytics*` queda `SKIPPED` (el
+  `onlyIf` real del plugin es `enabled.get() && !disableUpload.get()`), SKIE en sí sigue
+  activo. También se agregó `kotlinx-coroutines-core` 1.7.3 a `:shared` (no estaba) para
+  `FakeChoferAuthApi` (`shared/.../data/auth/FakeChoferAuthApi.kt`): implementación fake de
+  `ChoferAuthApi` con un escenario configurable (`ChoferAuthEscenario`, 9 casos) y `delay()`
+  simulando latencia, para desarrollo/previews sin pegarle a Supabase. Validado en la Mac:
+  `assembleSharedKitDebugXCFramework` y `:shared:allTests` (target iOS) OK; pendiente
+  confirmar en el PC Windows que `:app` (Android) sigue compilando con estos dos agregados
+  (ver cola de `Estado_actual.md` del repo Android). **Para iOS, directo:** regenerar el
+  `.xcframework` acá (ver bloque de la sección 1) va a traer el `sharedKit.xcframework` con
+  SKIE ya aplicado — al abrir `driverlog.xcodeproj` después de este cambio, revisar la API
+  Swift generada para `LaudoCalculator`/`SolapamientoValidator`/etc. antes de escribir
+  cualquier puente manual nuevo (puede que SKIE ya resuelva solo parte del mapeo Kotlin↔Swift
+  que hoy hace a mano `ContentView.swift`).
