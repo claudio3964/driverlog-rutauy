@@ -20,6 +20,19 @@
   `kmTotales = 220.0` y `montoTotal = 1762.68` hardcodeados, copiados de la prueba de
   `ContentView`) y formatear el monto a 2 decimales.
 - **Cola:**
+  - **PRIORIDAD — 03/10 — `legajo` se compara case-sensitive en el servidor
+    (`login-chofer`/`activar-chofer`), "TEST01" ≠ "test01".** Confirmado en código
+    (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119` del repo Android) — sin
+    `citext`, sin `lower()`/`upper()`, sin `ilike`. No es solo un problema de iOS: en
+    `login-chofer` un mismatch de capitalización cuenta contra el umbral de bloqueo
+    (`UMBRAL_DEVICE_MISMATCH=3`) — afecta a Android también. Decisión pendiente:
+    normalizar en el servidor (citext o forma canónica + `CHECK`), con diagnóstico de
+    solo lectura ya armado en el repo Android
+    (`supabase/diagnostico/20261003_legajo_case_sensitivity.sql`, pendiente correrlo — ver
+    cola de `Estado_actual.md` y entrada de hoy en `PANORAMA.md` de ese repo). Mientras
+    tanto, el campo Legajo de `LoginView` (ver `driverlog/Auth/`) tiene autocorrección
+    desactivada y `.textInputAutocapitalization(.characters)` — solo sugiere mayúsculas
+    en el teclado, no normaliza el valor real, es paliativo de UX.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
 

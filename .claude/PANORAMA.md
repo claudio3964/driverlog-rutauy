@@ -336,3 +336,20 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   Swift generada para `LaudoCalculator`/`SolapamientoValidator`/etc. antes de escribir
   cualquier puente manual nuevo (puede que SKIE ya resuelva solo parte del mapeo Kotlin↔Swift
   que hoy hace a mano `ContentView.swift`).
+- 03/10 (Mac) — **PRIORIDAD — `legajo` case-sensitive en el servidor, afecta a los dos
+  clientes.** Armando el login de iOS (`driverlog/Auth/`) se confirmó en código
+  (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119`) que el servidor compara
+  `legajo` con igualdad exacta — sin `citext`/`lower()`/`upper()`/`ilike` en ningún lado.
+  "TEST01" ≠ "test01". **Esto no es un problema solo de iOS:** en `login-chofer`, un
+  mismatch de capitalización cae en la rama de "device_id de otro legajo" (línea 108), que
+  **cuenta contra el umbral de bloqueo** (`UMBRAL_DEVICE_MISMATCH=3`) — un chofer Android
+  real puede terminar bloqueado (423) por escribir su propio legajo con otra
+  mayúscula/minúscula que la guardada. Decisión: normalizar en el servidor (citext o forma
+  canónica + `CHECK`), no en cada cliente. **Antes de tocar Supabase:** diagnóstico de solo
+  lectura en `supabase/diagnostico/20261003_legajo_case_sensitivity.sql` (legajos con
+  minúsculas/espacios, colisiones contra `upper(btrim(legajo))`, qué otras tablas tienen
+  columna `legajo`, FKs reales) — pendiente correrlo (sin CLI/credenciales en esta Mac) y
+  decidir con esos resultados. Ver cola de `Estado_actual.md` de los dos repos. **Mientras
+  tanto, en iOS:** el campo Legajo tiene autocorrección desactivada y
+  `.textInputAutocapitalization(.characters)` (solo sugiere mayúsculas en el teclado, no
+  normaliza el valor real) — paliativo de UX, no resuelve el fondo.
