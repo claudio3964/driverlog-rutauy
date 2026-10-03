@@ -20,19 +20,26 @@
   `kmTotales = 220.0` y `montoTotal = 1762.68` hardcodeados, copiados de la prueba de
   `ContentView`) y formatear el monto a 2 decimales.
 - **Cola:**
-  - **PRIORIDAD — 03/10 — `legajo` se compara case-sensitive en el servidor
-    (`login-chofer`/`activar-chofer`), "TEST01" ≠ "test01".** Confirmado en código
-    (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119` del repo Android) — sin
-    `citext`, sin `lower()`/`upper()`, sin `ilike`. No es solo un problema de iOS: en
-    `login-chofer` un mismatch de capitalización cuenta contra el umbral de bloqueo
-    (`UMBRAL_DEVICE_MISMATCH=3`) — afecta a Android también. Decisión pendiente:
-    normalizar en el servidor (citext o forma canónica + `CHECK`), con diagnóstico de
-    solo lectura ya armado en el repo Android
-    (`supabase/diagnostico/20261003_legajo_case_sensitivity.sql`, pendiente correrlo — ver
-    cola de `Estado_actual.md` y entrada de hoy en `PANORAMA.md` de ese repo). Mientras
-    tanto, el campo Legajo de `LoginView` (ver `driverlog/Auth/`) tiene autocorrección
-    desactivada y `.textInputAutocapitalization(.characters)` — solo sugiere mayúsculas
-    en el teclado, no normaliza el valor real, es paliativo de UX.
+  - **FRENTE NUEVO, PRIORITARIO — para la próxima sesión en el PC Windows — normalizar
+    `legajo` a mayúsculas (decidido 03/10, diagnóstico ya corrido en el repo Android).**
+    El servidor (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119`) compara
+    `legajo` con igualdad exacta — "TEST01" ≠ "test01" falla, y en `login-chofer` ese
+    mismatch cuenta contra el umbral de bloqueo (`UMBRAL_DEVICE_MISMATCH=3`) — afecta a
+    Android también, no es solo un problema de iOS. **Resultados del diagnóstico**
+    (`supabase/diagnostico/20261003_legajo_case_sensitivity.sql` del repo Android):
+    todos los legajos ya canónicos, sin colisiones, sin FKs reales sobre `legajo`;
+    existe como columna `text` en 8 tablas (`choferes`, `jornadas`, `viajes`,
+    `inconsistencias_cierre`, `inconsistencias_continuidad`, `registro_alertas`,
+    `alertas_login_chofer.legajo_objetivo`, `private.backup_jornadas_rotacion_20260917`),
+    sin integridad referencial declarada en ninguna. **Decisión:** forma canónica en
+    mayúsculas con `CHECK` solo en `choferes` (sin `citext`, sin migración de datos —
+    ya están todos canónicos); las Edge Functions normalizan con
+    `trim().toUpperCase()`; el alta del panel (`cot-admin-next`) manda el legajo ya en
+    mayúsculas. Implementación pendiente (migración + Edge Functions + panel) — ver
+    detalle en la cola de `Estado_actual.md` del repo Android. Mientras tanto, el campo
+    Legajo de `LoginView` (ver `driverlog/Auth/`) tiene autocorrección desactivada y
+    `.textInputAutocapitalization(.characters)` — solo sugiere mayúsculas en el
+    teclado, no normaliza el valor real, es paliativo de UX.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
 

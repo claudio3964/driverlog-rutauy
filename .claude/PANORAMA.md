@@ -337,19 +337,26 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   cualquier puente manual nuevo (puede que SKIE ya resuelva solo parte del mapeo Kotlin↔Swift
   que hoy hace a mano `ContentView.swift`).
 - 03/10 (Mac) — **PRIORIDAD — `legajo` case-sensitive en el servidor, afecta a los dos
-  clientes.** Armando el login de iOS (`driverlog/Auth/`) se confirmó en código
+  clientes. Diagnóstico corrido, decisión tomada, implementación pendiente para
+  Windows.** Armando el login de iOS (`driverlog/Auth/`) se confirmó en código
   (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119`) que el servidor compara
-  `legajo` con igualdad exacta — sin `citext`/`lower()`/`upper()`/`ilike` en ningún lado.
-  "TEST01" ≠ "test01". **Esto no es un problema solo de iOS:** en `login-chofer`, un
-  mismatch de capitalización cae en la rama de "device_id de otro legajo" (línea 108), que
-  **cuenta contra el umbral de bloqueo** (`UMBRAL_DEVICE_MISMATCH=3`) — un chofer Android
-  real puede terminar bloqueado (423) por escribir su propio legajo con otra
-  mayúscula/minúscula que la guardada. Decisión: normalizar en el servidor (citext o forma
-  canónica + `CHECK`), no en cada cliente. **Antes de tocar Supabase:** diagnóstico de solo
-  lectura en `supabase/diagnostico/20261003_legajo_case_sensitivity.sql` (legajos con
-  minúsculas/espacios, colisiones contra `upper(btrim(legajo))`, qué otras tablas tienen
-  columna `legajo`, FKs reales) — pendiente correrlo (sin CLI/credenciales en esta Mac) y
-  decidir con esos resultados. Ver cola de `Estado_actual.md` de los dos repos. **Mientras
-  tanto, en iOS:** el campo Legajo tiene autocorrección desactivada y
+  `legajo` con igualdad exacta — "TEST01" ≠ "test01", y en `login-chofer` ese mismatch
+  cae en la rama de "device_id de otro legajo" (línea 108), que **cuenta contra el
+  umbral de bloqueo** (`UMBRAL_DEVICE_MISMATCH=3`) — un chofer Android real puede
+  terminar bloqueado (423) por escribir su legajo con otra capitalización que la
+  guardada.
+  **Resultados del diagnóstico** (`supabase/diagnostico/20261003_legajo_case_sensitivity.sql`):
+  queries 1/2/4 sin filas (legajos ya canónicos, sin colisiones, sin FKs reales sobre
+  `legajo` en todo el esquema); query 3: `legajo` existe como `text` en 8 tablas
+  (`choferes`, `jornadas`, `viajes`, `inconsistencias_cierre`,
+  `inconsistencias_continuidad`, `registro_alertas`,
+  `alertas_login_chofer.legajo_objetivo`, `private.backup_jornadas_rotacion_20260917`),
+  todas copias de texto plano sin integridad referencial declarada.
+  **Decisión:** forma canónica en mayúsculas con `CHECK` solo en `choferes` (no
+  `citext`, **sin migración de datos** — ya están todos canónicos). Las Edge Functions
+  que reciben `legajo` del cliente normalizan con `trim().toUpperCase()`; el alta de
+  chofer desde el panel (`cot-admin-next`) manda el legajo ya en mayúsculas. Detalle de
+  los 3 pasos que faltan implementar en la cola de `Estado_actual.md` del repo Android.
+  **En iOS, mientras tanto:** el campo Legajo tiene autocorrección desactivada y
   `.textInputAutocapitalization(.characters)` (solo sugiere mayúsculas en el teclado, no
   normaliza el valor real) — paliativo de UX, no resuelve el fondo.
