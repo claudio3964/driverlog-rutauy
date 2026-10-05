@@ -110,9 +110,11 @@ Al terminar cada sesión de edición de código en este repo, ANTES de cerrar:
    plataforma van solo en este archivo.
 4. **Compilar** (`xcodebuild`, ver `CLAUDE.md` sección Build) antes del commit.
 5. **Commit** del/los `.md` junto con el código de la sesión. El md viaja CON el código.
-6. Si esta sesión editó `.claude/PANORAMA.md` → propagar el mismo cambio a la copia que vive
-   en el repo Android (commit y push en cada repo por separado) antes de cerrar. Ver nota al
-   pie de PANORAMA.md.
+6. Si esta sesión agregó una entrada fechada a `.claude/PANORAMA.md` → **agregar esa misma
+   entrada fechada** a la copia que vive en el repo Android (commit aparte en cada repo, push)
+   antes de cerrar. **Sin pisar su redacción:** nunca copiar el archivo entero encima del
+   otro. Cada copia habla de "este repo" y "el otro repo" desde su lado, y esa diferencia es
+   correcta (corregido 04/10).
 
 **Regla de oro:** si abrís una sesión nueva acá y este archivo no refleja la realidad, el
 protocolo falló. Este es la fuente de verdad portable de este repo.
