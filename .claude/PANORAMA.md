@@ -367,3 +367,20 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS:** el `:shared` actual se puede usar tal cual desde los dos lados.
   `FakeChoferAuthApi` todavía no tiene tests ni consumidores; se testea cuando lo use alguno de
   los dos clientes (tests de `:app` o previews de iOS).
+- 04/10 (Windows) — **Legajo canónico CERRADO en servidor + Android; falta iOS.** Forma única de
+  `choferes.legajo` = mayúsculas sin espacios en los bordes. Aplicado en prod:
+  `CHECK choferes_legajo_canonico` en `choferes` (insert en minúsculas → 23514, probado con
+  ROLLBACK); `alta_chofer_supervisor` y `generar_codigo_enrolamiento` normalizan `p_legajo` con
+  `upper(btrim(...))` (migración `20261004010000_legajo_canonico.sql`); `login-chofer` (v17) y
+  `activar-chofer` (v14) normalizan con `trim().toUpperCase()` antes de comparar, así que un
+  legajo con otra capitalización ya no cuenta contra el umbral de bloqueo. **Cambio de
+  contrato:** el 200 de `login-chofer` trae un campo nuevo, `legajo` = `dueño.legajo`
+  (canónico, de `choferes`). **`:shared`:** `SesionChoferDto.legajo: String? = null`
+  (opcional), con su caso en `ChoferAuthDecodingTest` (43/43 en JVM). **Android** (`daadda9`):
+  manda `trim().uppercase()` y guarda como sesión el `legajo` del 200, no lo tipeado; si viene
+  null, usa el enviado ya normalizado. Probado en el Huawei con 9999999.
+  **Para iOS (Mac):** regenerar el `.xcframework`; en el login, normalizar el legajo antes de
+  mandarlo (`trimmingCharacters(in: .whitespaces).uppercased()`) y guardar
+  `SesionChoferDto.legajo ?? enviadoNormalizado` como legajo de la sesión. El paliativo de
+  `.textInputAutocapitalization(.characters)` puede quedar como UX. Sin migración de datos del
+  lado cliente: todos los legajos ya eran canónicos. Cola del frente en `Estado_actual.md` del repo Android.
