@@ -360,3 +360,10 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **En iOS, mientras tanto:** el campo Legajo tiene autocorrección desactivada y
   `.textInputAutocapitalization(.characters)` (solo sugiere mayúsculas en el teclado, no
   normaliza el valor real) — paliativo de UX, no resuelve el fondo.
+- 04/10 (Windows) — **Cerrados los dos pendientes de `:shared` del 03/10.** Sobre `main` `1478fbc`:
+  `:shared:testAndroidHostTest --rerun` da **42/42** (`ChoferAuthDecodingTest` 19/19 en JVM,
+  igual que en iOS; el conteo correcto es 19, no los 18 de la entrada 03/10), y
+  `:app:assembleDebug` compila sin errores con SKIE 0.10.15 + `kotlinx-coroutines-core` 1.7.3.
+  **Para iOS:** el `:shared` actual se puede usar tal cual desde los dos lados.
+  `FakeChoferAuthApi` todavía no tiene tests ni consumidores; se testea cuando lo use alguno de
+  los dos clientes (tests de `:app` o previews de iOS).
