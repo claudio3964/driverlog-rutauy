@@ -384,3 +384,46 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `SesionChoferDto.legajo ?? enviadoNormalizado` como legajo de la sesión. El paliativo de
   `.textInputAutocapitalization(.characters)` puede quedar como UX. Sin migración de datos del
   lado cliente: todos los legajos ya eran canónicos. Cola del frente en `Estado_actual.md` del repo Android.
+- 05/10 (Windows) — **`TransicionesViaje` llega a `:shared` en `main` (merge de bug 1 3b.1, `9dc3f6c`).**
+  `shared/src/commonMain/.../TransicionesViaje.kt` (commits `b4beeaf`, `33f387f`): regla única de
+  transiciones de estado de un viaje (P `programado` / E `en_curso` / F `finalizado` /
+  C `cancelado`), espejo del trigger `trg_jornadas_travels` (3a.1). Transiciones legales:
+  P→E, P→C, E→F; F y C son terminales; nunca P→F ni E→C. Expone `transicionLegal`,
+  `activable` y `cancelablePorPanel` (solo P); `decidirMerge` para el sync (remoto C gana
+  sobre local P/E; local C se conserva frente a remoto P/E; F contra C no se toca, es
+  conflicto para 3b.3; en el resto gana el más avanzado, empate → remoto);
+  `inicioActivacion` (qué `inicioReal` usar si `activar_viaje` no respondió: la hora
+  oficial, o min(pedida, oficial) en "Iniciar ahora" salvo más de 10 min de adelanto) e
+  `interpretarActivacion` (respuesta de la RPC `activar_viaje`).
+  Android la usa en el sync (`SyncMerge.kt`) y en `ActivarViajeWorker`. Tests: 
+  `TransicionesViajeTest` 7/7 y `:shared:testAndroidHostTest` 50/50 en Windows (como ya decía
+  la entrada del 04/10, esa task corre `commonTest` en JVM; el mensaje del merge lo presenta
+  como hallazgo nuevo, no lo es).
+  **Flujo que cambió en Android (para no divergir):** activar un viaje programado = primero
+  `activar_viaje` en el servidor, y solo si activó (o no respondió) queda en curso local y
+  arranca el GPS; "Iniciar ahora" manda la hora del toque y un motivo si es más de 10 min antes
+  (el servidor ajusta `inicio_real` a la hora programada con `ajuste=ADELANTO_MAYOR_AL_LIMITE`);
+  la app ya no cancela un viaje en curso (A7 fuera); `cancelar_viaje` del panel solo anula
+  programados.
+  **Para iOS (Mac):** regenerar el `.xcframework`; correr los tests de `:shared` en los targets
+  iOS; cuando iOS implemente activación/sync de viajes, usar `TransicionesViaje` en vez de
+  reglas propias.
+- 05/10 (Windows) — **`cancelar_viaje` cambia de rol: el panel anula en el servidor con
+  `anular_viaje_panel` (bug 1 3b.2, aplicada en prod; panel `cot-admin-next` `5058320` en prod).**
+  RPC `anular_viaje_panel(p_viaje_id, p_motivo) → jsonb`, **solo admin**: pasa el viaje P→C en
+  `jornadas.data.travels`, le agrega la clave **`anulacion` = {at, por, motivo, edicion_id}**,
+  audita en `private.ediciones_viaje` (columna nueva `operacion` = `'anulacion'`) e inserta el
+  mensaje `cancelar_viaje`, todo en una transacción. E → 409 `VIAJE_EN_CURSO`, F → 409
+  `VIAJE_FINALIZADO`, jornada cerrada → 409 `JORNADA_CERRADA`, C → 200 idempotente. **Forma
+  nueva del `data` del mensaje `cancelar_viaje`:** `{viajeId, edicion_id, origen:
+  "anular_viaje_panel"}` — **claves nuevas `edicion_id` y `origen`**; en jornadas sin legajo
+  (rotación) no se manda mensaje. **El mensaje ya no es quien cancela:** cuando llega, el C ya
+  está en el servidor; es un aviso que el celu aplica en local (y a futuro confirma, capa 1).
+  Android hoy lee solo `viajeId` y aplica solo sobre P (sobre E/F marca leído e ignora); las
+  claves nuevas se ignoran sin romper. Migración `20261005010000_bug1_3b2_anular_viaje_panel.sql`
+  del repo Android.
+  **Para iOS (Mac):** al decodificar `cancelar_viaje` (`Mensaje.swift`), tolerar las claves
+  nuevas (opcionales: `edicion_id`, `origen`) y la clave `anulacion` dentro de un viaje de
+  `travels`; tratar el mensaje como aviso de algo que el servidor ya hizo (no reescribir el C
+  ni pelear contra el estado remoto), y aplicarlo solo sobre P, con `TransicionesViaje`
+  (`cancelablePorPanel`). Cola del frente en `Estado_actual.md` del repo Android.
