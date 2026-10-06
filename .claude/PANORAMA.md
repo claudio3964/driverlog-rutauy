@@ -427,3 +427,17 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `travels`; tratar el mensaje como aviso de algo que el servidor ya hizo (no reescribir el C
   ni pelear contra el estado remoto), y aplicarlo solo sobre P, con `TransicionesViaje`
   (`cancelablePorPanel`). Cola del frente en `Estado_actual.md` del repo Android.
+- 06/10 (Windows + Linux) — **Jornada borrada desde el panel: regla de cliente (A.4, merge
+  `4e32083` en `main`).** Una jornada soft-deleted por el panel (`borrar_jornada`: `data.deleted
+  = true` + `deleted_at`/`deleted_by`/`deleted_reason`, y deja `closed: true`) ya no reaparece en
+  Android. Regla, **solo ante `deleted = true` explícito leído OK** (de `estado_jornada` o del
+  `data` de la jornada): si en local estaba **activa o colgada → purga** (jornada + viajes +
+  guardias, cancela los timers/workers de esa jornada y frena el GPS si había un viaje en curso);
+  si estaba **cerrada → "anulada"**, con fecha/autor/motivo del borrado, **sin monto ni km y fuera
+  de todo total**; si no está en local (reinstalación) → "anulada" solo si tenía snapshot de
+  totales, si no se ignora. **Nunca inferir un borrado** de la ausencia de filas, de `[]`, de
+  `null` ni de un error de red. Sin cambios en Supabase (el `deleted` ya existía); en Android es
+  migración Room 15→16 (`anuladaAt/anuladaPor/anuladaMotivo`), interna.
+  **Para iOS (Mac):** cuando iOS liste o sincronice jornadas, filtrar `data.deleted = true` con
+  esta misma regla — en particular, no mostrar una borrada como cerrada con monto ni dejarla
+  bloqueando como colgada. Cola del frente en `Estado_actual.md` del repo Android.
