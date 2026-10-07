@@ -441,3 +441,38 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (Mac):** cuando iOS liste o sincronice jornadas, filtrar `data.deleted = true` con
   esta misma regla — en particular, no mostrar una borrada como cerrada con monto ni dejarla
   bloqueando como colgada. Cola del frente en `Estado_actual.md` del repo Android.
+- 06/10 (Windows) — **"Anular asignación" paso 4, capa servidor APLICADA EN PROD (bug 1 3b.2;
+  migración `20261006010000_bug1_3b2_paso4_anular_asignacion.sql`, matriz 46/46).** Para todos
+  los clientes:
+  - **Id del viaje de una asignación: `ASG-<mensaje_id>-<ORI>`** (`<ORI>` = el sufijo de siempre,
+    `origen.take(3).uppercase()`, así `-PRU` sigue excluyendo pruebas en `LaudoCalculator` y
+    `travel_stats` sin tocarlos). Los viajes que crea el chofer siguen `VJL-<ms>-<ORI>`. El
+    servidor solo lee el número (`^ASG-<n>-`). Android lo empieza a usar con el APK del paso 4.
+  - **Alta de un viaje `ASG-` (`agregar_viaje_a_jornada` y trigger de `travels`):** 409
+    `ASIGNACION_ANULADA` si la asignación está anulada (también en un reintento con el mismo id:
+    el chequeo va antes del no-op idempotente), 409 `ASIGNACION_INVALIDA` si el mensaje no existe,
+    no es `asignacion` o es de otro legajo, y 409 `ASIGNACION_EN_OTRA_JORNADA` si el mismo id ya
+    está en otra jornada del legajo. Ids `VJL-` sin cambios.
+  - **RPC nueva `anular_asignacion_panel(p_mensaje_id, p_motivo) → jsonb`** (solo admin): busca
+    el viaje por `data.viajeId` o por `ASG-<id>-*`, lo anula con la misma lógica que
+    `anular_viaje_panel` y marca la asignación con un **formato único**: `respuesta = 'anulado'`,
+    `anuladoAt` (ISO UTC), `anuladoPor`, `anuladoMotivo`, `edicionId`, `mensajeCancelacionId`,
+    `anulacionResultado` (`cancelado` | `ya_cancelado` | `sin_viaje_en_servidor`) y `viajeId` si
+    lo encontró. Manda el `cancelar_viaje` **siempre**, también sin viaje en el servidor (el celu
+    puede tenerlo solo en local). El panel la empieza a usar en el paso H.
+  - **`cancelar_viaje`: la clave `origen` pasa a `fuente`.** ⚠️ **Corrige la entrada del 05/10**,
+    que le pedía a iOS tolerar `origen`. Forma nueva del `data`: `{fuente, viajeId?,
+    asignacionId?, edicion_id?}`, con `fuente` = `anular_viaje_panel` | `anular_asignacion_panel`.
+    Con `asignacionId` y sin `viajeId`, el cliente busca el viaje local por `id` que empiece con
+    `ASG-<asignacionId>-`.
+  - **Capa 1 — confirmación:** `responder_mensaje(p_mensaje_id, {confirmado: true, resultado})`
+    solo para `cancelar_viaje` (otro tipo → 409 `CONFIRMACION_NO_APLICA`). Escribe
+    `data.confirmacion = {at, resultado}` y marca leído; la primera confirmación queda.
+    `resultado`: `cancelado` (estaba P) | `cancelado_en_curso` (estaba E: se cancela y se frena
+    el GPS, mismo criterio que `TransicionesViaje.decidirMerge`: el C del servidor gana) |
+    `ya_cancelado` | `no_esta_en_celu` | `finalizado` (F local no se toca, conflicto de la capa 3).
+    La rama `viajeId`/`guardiaId` de `responder_mensaje` no cambia.
+  **Para iOS (Mac):** al decodificar `cancelar_viaje` (`Mensaje.swift`), leer `fuente` (no
+  `origen`) y `asignacionId` opcional. Cuando iOS cree viajes desde una asignación, usar el id
+  `ASG-<mensaje_id>-<ORI>` con el mismo sufijo, y confirmar el `cancelar_viaje` con la misma lista
+  de resultados. Cola del frente en `Estado_actual.md` del repo Android.
