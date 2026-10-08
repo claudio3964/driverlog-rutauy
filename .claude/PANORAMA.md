@@ -500,3 +500,13 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   rompe al panel. En cola: posible push doble por mensaje del panel (las dos funciones mandan
   para `asignacion`/`urgente`, sin verificar) y retirar `_rescate_20260929/`. **Para iOS:** nada cambia en
   contratos ni RPCs.
+
+- 08/10 (Android `main`, cierre) — **Frente "Retiro del repo JS" CERRADO.** Fuente única de
+  Supabase en `main` (las 7 Edge Functions + `config.toml`); `dev-rebuild-core` congelada con tag
+  `legacy-panel-js`; el clon JS local quedó sin `origin`; el sitio Netlify del panel viejo fue
+  eliminado. Backups en la PC Windows: `C:\cot_dev\archivo\js-legacy-20261008.bundle` (todas las
+  ramas, tags y stashes del clon JS), `C:\cot_dev\archivo\app-updates\` (bucket OTA viejo) y el
+  zip del panel viejo; copia en Google Drive ("COT Driver / archivo-legacy-2026-10-08").
+  Queda abierto solo lo del frente push real (hardening de
+  `bright-processor`, push doble). **Para iOS:** nada cambia; ningún cliente usa el bucket
+  `app-updates` ni la rama JS.
