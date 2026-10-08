@@ -489,3 +489,14 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   las dos se usaban: webhook `push-mensaje-nuevo` y panel Next) → camino probable: traerlas,
   previo `supabase functions download` a carpeta temporal + diff contra `_rescate`. **Para iOS:** nada cambia en
   contratos ni RPCs; si algún día se deploya una función, es desde `main`.
+
+- 08/10 (Android `main`, cont.) — **Las 7 Edge Functions tienen fuente en `main`.**
+  `enviar-push-mensaje` (v19) y `bright-processor` (v16) bajadas de prod, idénticas a
+  `_rescate_20260929`, copiadas a `supabase/functions/` y agregadas a `config.toml`
+  (`verify_jwt = false` las dos, verificado en prod). Callers: `enviar-push-mensaje` ← trigger
+  `push-mensaje-nuevo` (AFTER INSERT ON `mensajes`); `bright-processor` ← solo el panel Next
+  (push FCM a un token). Las otras 5 deployadas también se bajaron y son iguales a `main`. Nada
+  deployado. **No renombrar `bright-processor`** aunque el nombre no diga nada: cambia la URL y
+  rompe al panel. En cola: posible push doble por mensaje del panel (las dos funciones mandan
+  para `asignacion`/`urgente`, sin verificar) y retirar `_rescate_20260929/`. **Para iOS:** nada cambia en
+  contratos ni RPCs.
