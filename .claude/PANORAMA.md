@@ -476,3 +476,16 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `origen`) y `asignacionId` opcional. Cuando iOS cree viajes desde una asignación, usar el id
   `ASG-<mensaje_id>-<ORI>` con el mismo sufijo, y confirmar el `cancelar_viaje` con la misma lista
   de resultados. Cola del frente en `Estado_actual.md` del repo Android.
+
+- 08/10 (Android `main`) — **Edge Functions: `main` es la única fuente.** `4ac88da` trae
+  `enviar-push-viaje` (= `ac4cde0`, D5, prod v48) y `supabase/config.toml` desde
+  `dev-rebuild-core`; el toml fija `verify_jwt` por función igual a prod (`crear-admin` true;
+  `enviar-push-viaje`, `login-chofer`, `refresh-chofer`, `activar-chofer` false). La rama JS ya
+  no tiene nada vivo y queda congelada (tag `legacy-panel-js`); su copia de este archivo se
+  congela en el sync `55d2fa4` (01/10) y **deja de sincronizarse** — la vigente es esta.
+  **Pendiente (no resuelto):** `enviar-push-mensaje` y `bright-processor` están en prod pero sin
+  carpeta en `supabase/functions/` (solo en `supabase/_rescate_20260929/`, fuera del toml).
+  Decisión a tomar: traerlas a `functions/` si se usan, o borrarlas de prod si no (hasta el 29/09
+  las dos se usaban: webhook `push-mensaje-nuevo` y panel Next) → camino probable: traerlas,
+  previo `supabase functions download` a carpeta temporal + diff contra `_rescate`. **Para iOS:** nada cambia en
+  contratos ni RPCs; si algún día se deploya una función, es desde `main`.
