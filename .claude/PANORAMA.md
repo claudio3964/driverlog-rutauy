@@ -13,7 +13,8 @@
 > **Corrección 29/09 (reemplaza la "Corrección 16/09", que era falsa):** en GitHub hay UN solo
 > repo, `claudio3964/app-kilometros-completa`, con dos ramas sin historia común:
 > - `main` = Kotlin + `:shared` — núcleo Android, producción (sección 2).
-> - `dev-rebuild-core` = JS/Capacitor legacy, rama huérfana (sección 5).
+> - `dev-rebuild-core` = JS/Capacitor legacy, rama huérfana, **congelada 08/10** (tag
+>   `legacy-panel-js`, sección 5).
 >
 > `cot_devapp_kilometros-completa-android-koltin` NO es un repo: es solo el nombre de la carpeta
 > local del checkout en el PC Windows (confirmado con `git remote -v` en el PC, que apunta a
@@ -90,8 +91,9 @@ Mensajes del panel, gap de reactividad Home con actividad *programada* (no solo 
 
 ## 4. Panel — `cot-admin-next`
 
-**Estado:** deployado en Netlify (preview), 10 tabs cargando sin errores, sin blockers de
-deploy pendientes. Deuda no bloqueante: ~31 errores de lint (`react-hooks/set-state-in-effect`
+**Estado (08/10):** **único panel web en producción**, en `https://cot-driver-admin.netlify.app`.
+Deploy manual (`npm run build && npm run zip` → subir el zip a Netlify); el repo no está
+conectado a Netlify, un push no publica nada. El panel JS viejo está retirado (sección 5). Deuda no bloqueante: ~31 errores de lint (`react-hooks/set-state-in-effect`
 sobre todo), credenciales Supabase duplicadas en ~13-14 archivos.
 
 **Pendientes (features, no bugs):** tab de historial de actividad del chofer con edición
@@ -102,7 +104,14 @@ negocio se van a tomar con esos datos primero).
 
 ## 5. JS/Capacitor legacy — `app-kilometros-completa`, rama `dev-rebuild-core` (huérfana)
 
-**Estado:** app de chofer ya migrada 100% a Kotlin (sección 2) — esta rama queda como legacy,
+**Estado (08/10): RETIRADA Y CONGELADA.** Frente "Retiro del repo JS" cerrado: rama congelada
+(README LEGACY, tag `legacy-panel-js`), sin nada vivo — las Edge Functions y `config.toml` tienen
+fuente única en `main`; el sitio Netlify del panel viejo (`cot-driver-admin-viejo`) fue eliminado;
+el clon JS local quedó sin `origin`. No se trabaja ni se deploya nada desde esta rama. Backups en
+`C:\cot_dev\archivo\` y en Google Drive ("COT Driver / archivo-legacy-2026-10-08"). El texto de
+abajo es histórico.
+
+**Estado anterior (16/09, histórico):** app de chofer ya migrada 100% a Kotlin (sección 2) — esta rama queda como legacy,
 pero sigue teniendo código real cargado desde `www/index.html` (`ui_registro.js`,
 `push_notifications.js`, `sync.js`, `ui_mensajes.js`), mantenido por seguridad aunque no haya
 confirmación de uso real en dispositivos hoy. También contiene el panel admin viejo
