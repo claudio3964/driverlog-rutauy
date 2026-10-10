@@ -519,3 +519,25 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   Queda abierto solo lo del frente push real (hardening de
   `bright-processor`, push doble). **Para iOS:** nada cambia; ningún cliente usa el bucket
   `app-updates` ni la rama JS.
+
+- 10/10 (Android `main`) — **Paso 4 de "Anular asignación", lado app, en `main` (merge `fcd0c9a`
+  de `fix/bug1-3b2-paso4`; campo I, 7 casos, cerrado).** El contrato de servidor es el de la
+  entrada 06/10 (id `ASG-<mensaje_id>-<ORI>`, `cancelar_viaje` con `fuente`/`asignacionId`,
+  confirmación de capa 1); no cambió nada en Supabase. Lo nuevo:
+  - **`:shared`: `TransicionesViaje.ResultadoCancelacionPanel` reemplaza a `cancelablePorPanel`,
+    que ya no existe.** ⚠️ **Corrige las entradas del 05/10**, que le pedían a iOS usar
+    `cancelablePorPanel`. `resultadoCancelacionPanel(statusLocal)` devuelve qué hacer y qué
+    confirmar: sin viaje → `no_esta_en_celu`; P → `cancelado`; E → `cancelado_en_curso`; C →
+    `ya_cancelado`; F → `finalizado`. Cada valor trae `wire` (el string de `resultado` para
+    `responder_mensaje`) y `cancelaEnCelu`. `:shared:testAndroidHostTest` 50/50 en Windows.
+  - **Flujo en Android (para no divergir):** `cancelar_viaje` busca el viaje por `viajeId` o por
+    prefijo `ASG-<asignacionId>-`; P → C; **E → C, frena el GPS, borra `inicioReal` y avisa al
+    chofer** ("El panel anuló este viaje. Comunicate con Tránsito."; es el único resultado que
+    notifica); F no se toca; después confirma. Una confirmación rechazada con 4xx permanente no
+    se reintenta. Reprocesar una asignación cuyo viaje ya existe en local no lo recrea. Un 409
+    `ASIGNACION_*` al dar de alta deshace solo ese viaje local.
+  - **Validado en campo:** un E local anulado (P en el servidor) no suma en el Historial ni en
+    el `totalsSnapshot` del cierre.
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; al implementar `cancelar_viaje`, usar `resultadoCancelacionPanel` y mandar su
+  `wire` en la confirmación.
