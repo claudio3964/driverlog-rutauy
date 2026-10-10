@@ -616,3 +616,24 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     `inicioMs` editada sin `p_inicio_ms` → 400 `INICIO_MS_REQUERIDO`.
   **Para iOS:** nada que hacer hasta que se aplique; al implementar guardias, usar estas RPC y
   mandar `asignacionId` e `inicioMs`.
+- 10/10 (Android `main`) — **Guardia programada, paso 3: `:shared` + lado app (datos). Sin
+  instalar, sin campo; la migración del servidor sigue sin aplicar.**
+  - **`:shared`:** `Guardia.asignacionId: Long?` (id del mensaje `guardia` de origen; un cambio
+    de tipo lo copia al tramo nuevo). `CancelarGuardiaData.asignacionId: Long?`.
+    `SolapamientoValidator.viajeQueImpideActivarGuardia(viajes, momento)`: el segundo parámetro
+    pasó de "ahora" a un momento cualquiera — el respaldo tardío pregunta también por la hora
+    de inicio de la guardia (cuenta el viaje ya terminado que estaba en curso en ese momento y
+    el que arrancó en los 15 min siguientes). `:shared:testAndroidHostTest` 79/79.
+  - **Comportamiento del cliente que iOS tiene que copiar al implementar guardias:** alta con
+    `inicioMs` y `asignacionId`; nace `programada` si el inicio es futuro, sin timers; a su
+    hora llama a `activar_guardia_en_jornada` (servidor primero; sin red activa local y
+    reintenta) y adopta `inicio`/`inicio_ms`/`status_actual` de la respuesta; si hay un viaje
+    en curso o por arrancar queda "no iniciada" y **no se reintenta sola** (el chofer la inicia
+    a mano y se paga desde ese momento); `cancelar_guardia` se busca por `guardiaId` o
+    `asignacionId` y vale para programada o en curso; una programada bloquea el cierre manual
+    de la jornada y frena el automático; el timer de la guardia y el de la jornada cuentan
+    desde el inicio de la guardia; al terminar una guardia o un viaje se vuelve a armar la
+    revisión de cierre de la jornada; 409 `GUARDIA_VIVA_EXISTENTE` en el alta → reenviar el
+    cierre de las guardias ya terminadas y reintentar una vez; 409 `ASIGNACION_ANULADA` →
+    borrar la guardia local.
+  **Para iOS (Mac):** tests de `:shared` en los targets iOS y regenerar el `.xcframework`.
