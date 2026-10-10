@@ -588,3 +588,31 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `anular_guardia_panel`, rechazo de una segunda guardia viva en `agregar_guardia_a_jornada`,
   `editar_guardia_en_jornada` con `inicioMs` y sin hora futura; `status: "programada"` e
   `inicioMs` en `data.guards[]`.
+- 10/10 (Android `main`) — **Servidor: RPC de la guardia programada (fase B, paso 2).
+  MIGRACIÓN ESCRITA, NO APLICADA** (`20261010010000_guardia_programada_paso2.sql`; se aplica
+  junto con el APK del paso 3). Lo que va a cambiar para los dos clientes cuando se aplique:
+  - **`agregar_guardia_a_jornada`** (misma firma): una guardia nace solo `programada` o
+    `en_curso`; `programada` exige `inicioMs`; `en_curso` con `inicioMs` a más de 10 min →
+    409 `GUARDIA_INICIO_FUTURO`; ya hay una viva en la jornada → 409
+    `GUARDIA_VIVA_EXISTENTE`; mismo `id` otra vez → no-op (antes duplicaba); `id` obligatorio.
+  - **Campo nuevo `guards[].asignacionId`** = id del mensaje `guardia` que la originó (lo pone
+    el cliente al crearla desde una asignación, y lo copia al tramo nuevo en un cambio de
+    tipo). Con él el servidor rechaza el alta de una asignación anulada (409
+    `ASIGNACION_ANULADA` / `ASIGNACION_INVALIDA`, mismos códigos que los viajes) y encuentra
+    la guardia al anular sin depender del enlace `data.guardiaId`.
+  - **`activar_guardia_en_jornada(p_guardia_id, p_order_number, p_inicio_ms?)`** nueva (chofer):
+    programada → en_curso. Sin `p_inicio_ms` cuenta desde el inicio programado; con él (botón
+    "Iniciar guardia") desde ese momento. Devuelve `{activada, status_actual, inicio_ms,
+    inicio, motivo?, ajuste?}`; el cliente adopta `inicio`/`inicio_ms` de la respuesta y, si
+    `activada=false`, el `status_actual`. No valida viajes: eso lo decide el cliente con
+    `TransicionesGuardia.decidirActivacion`.
+  - **`anular_guardia_panel(p_mensaje_id, p_motivo)`** nueva (admin): cancela la guardia viva
+    (programada o en curso), audita, marca la asignación anulada y manda `cancelar_guardia`
+    **siempre**, con forma nueva `{fuente, asignacionId, guardiaId?, edicion_id?}` — el
+    cliente tiene que buscar la guardia por `guardiaId` **o por `asignacionId`** (puede venir
+    sin `guardiaId` si el servidor no la tenía).
+  - **`editar_guardia_en_jornada(p_guardia_id, p_inicio, p_inicio_ms?)`**: programada → 409
+    `GUARDIA_PROGRAMADA_NO_EDITABLE`; hora futura → 409 `INICIO_FUTURO`; guardia con
+    `inicioMs` editada sin `p_inicio_ms` → 400 `INICIO_MS_REQUERIDO`.
+  **Para iOS:** nada que hacer hasta que se aplique; al implementar guardias, usar estas RPC y
+  mandar `asignacionId` e `inicioMs`.
