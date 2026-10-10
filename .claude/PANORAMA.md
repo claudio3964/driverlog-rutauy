@@ -637,3 +637,17 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     cierre de las guardias ya terminadas y reintentar una vez; 409 `ASIGNACION_ANULADA` →
     borrar la guardia local.
   **Para iOS (Mac):** tests de `:shared` en los targets iOS y regenerar el `.xcframework`.
+- 10/10 (panel `cot-admin-next`, rama `feat/guardia-programada-paso5`, SIN mergear ni deployar) —
+  **Guardia programada, paso 5: lo que el panel manda y espera.**
+  - Mensaje `guardia`: `data.guardia = {horaInicio, tipo, inicioMs}`. `inicioMs` = día elegido
+    (Hoy/Mañana, obligatorio, hora de Montevideo) + hora. No se asigna a "todos".
+  - No asigna si el chofer ya tiene una guardia viva (programada o en curso) en una jornada
+    abierta, **o una asignación de guardia sin leer** (el servidor frena el alta de la guardia,
+    no el mensaje). Una asignación de guardia, leída o no, **no se edita**: anular y reasignar.
+  - Anular: `anular_guardia_panel(p_mensaje_id, p_motivo)` (motivo ≥ 10). Ya no arma el PATCH
+    ni el `cancelar_guardia` del lado del cliente. Anular una en curso está permitido, con
+    aviso de las horas que se pierden.
+  - Editar una en curso: `editar_guardia_en_jornada(p_guardia_id, p_inicio, p_inicio_ms)` con
+    la misma fecha que tenía la guardia; mensaje `editar_guardia` con `{guardiaId, inicio,
+    tipo, inicioMs}`.
+  **Para iOS:** nada que implementar; es el contrato de mensajes que va a recibir.
