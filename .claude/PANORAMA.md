@@ -559,3 +559,32 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   decidir el detalle):** las guardias van a tener un estado `programada` (hora futura → no nace
   `en_curso`) y probablemente el inicio pase a fecha+hora completa; va a cambiar la forma de
   `data.guards[]` — habrá otra entrada cuando se decida.
+- 10/10 (Android `main`) — **`:shared`: reglas de la guardia `programada` (frente "guardia con
+  hora futura", fase B, paso 1 de 7; solo `:shared`, todavía nada lo usa en la app, el servidor
+  ni el panel).** Decisiones de Claudio que valen para los dos clientes:
+  - **Estados de guardia:** `programada`, `en_curso`, `finalizada`, `cancelado`. Legales:
+    programada→en_curso, programada→cancelado, en_curso→finalizada, en_curso→cancelado. Nace
+    `programada` si su inicio es futuro (`TransicionesGuardia.estadoInicial`).
+  - **Máximo UNA guardia viva (programada o en curso) por chofer** (`puedeAgregarse`). Las
+    programadas **no se editan** (anular y reasignar) y **solo las anula tránsito**: el chofer no
+    tiene botón de cancelar. Una programada frena el cierre automático de la jornada y
+    **bloquea** el manual (`pendiente`).
+  - **Activación** (`decidirActivacion` + `SolapamientoValidator.viajeQueImpideActivarGuardia`):
+    a su hora pasa a `en_curso`, salvo que haya un viaje en curso o uno programado que arranca
+    en 15 min o menos → queda programada ("no iniciada"), sin activación automática posterior;
+    el chofer la inicia a mano (se paga desde ese momento) o tránsito la anula y reasigna.
+  - **`inicioMs` (epoch ms) aditivo** en `Guardia`, en `data.guardia.inicioMs` del mensaje
+    `guardia` y en `inicioMs` de `editar_guardia`; "HH:mm" se mantiene. Lo va a mandar el panel
+    (selector hoy/mañana). Sin `inicioMs` (mensaje viejo): `inferirInicioGuardiaMs` — hora ya
+    pasada hace más de 3 h = mañana; hora futura con la de ayer a 3 h o menos = ayer.
+    `inicioGuardiaParaCierre` acepta `inicioMs` y con él no usa la heurística de `createdAt`.
+  - **`LaudoCalculator` ya no cuenta guardias `programada` ni `cancelado`** (km, horas de
+    jornada, viático). Arregla un bug vigente: una cancelada con hora de inicio y sin fin
+    entraba al viático como "en curso hasta ahora" (test: 2 viáticos de más).
+  `:shared:testAndroidHostTest` 77/77 en Windows.
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; usar `TransicionesGuardia` para todo lo que hoy asuma "guardia = en_curso".
+  **Viene (pasos 2 a 5, habrá entrada por cada uno):** RPCs `activar_guardia_en_jornada` y
+  `anular_guardia_panel`, rechazo de una segunda guardia viva en `agregar_guardia_a_jornada`,
+  `editar_guardia_en_jornada` con `inicioMs` y sin hora futura; `status: "programada"` e
+  `inicioMs` en `data.guards[]`.
