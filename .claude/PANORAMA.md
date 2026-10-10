@@ -541,3 +541,21 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
   `.xcframework`; al implementar `cancelar_viaje`, usar `resultadoCancelacionPanel` y mandar su
   `wire` en la confirmación.
+
+- 10/10 (Android `main`) — **`:shared`: `SolapamientoValidator.inicioGuardiaParaCierre` (frente
+  "guardia con hora futura → estado programada", fase A; escrita y con tests, FALTA el campo).**
+  Regla nueva para cerrar una guardia en curso: `inicioGuardiaParaCierre(horaInicio, createdAt,
+  ahora)` devuelve `Valido(inicioMs)`, `FinAnteriorAInicio(inicioMs)` o `HoraInvalida`. Una hora
+  de inicio "HH:mm" de hoy que todavía no llegó **ya no se lee como "arrancó ayer"** salvo cruce
+  real de medianoche (la guardia ya existía cerca de esa hora de ayer: `createdAt` no es
+  posterior a ella en más de `MARGEN_INICIO_ANTES_DE_CREACION_MS` = 3 h, parche heurístico).
+  Si no, el cierre se **rechaza**: la guardia queda en curso, nunca se pagan +24 h (antes, una
+  guardia asignada para más tarde y cerrada antes de su hora cobraba ~24 h).
+  `parsearInicioGuardiaMs` no cambia. `:shared:testAndroidHostTest` 55/55 en Windows
+  (`InicioGuardiaCierreTest`, 5 casos).
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; al implementar el cierre de guardias usar esta función y tratar
+  `FinAnteriorAInicio` como rechazo (no cerrar). **Viene la fase B (en relevamiento, sin
+  decidir el detalle):** las guardias van a tener un estado `programada` (hora futura → no nace
+  `en_curso`) y probablemente el inicio pase a fecha+hora completa; va a cambiar la forma de
+  `data.guards[]` — habrá otra entrada cuando se decida.
