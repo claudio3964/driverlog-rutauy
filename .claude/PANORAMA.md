@@ -681,3 +681,25 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS:** nada que implementar ahora. Al implementar guardias y el cierre de jornada, no
   copiar (b) ni (c) tal cual; y no "arreglar" (a) solo de un lado: se decide si se corrige en
   el panel o en `:shared`.
+
+- **12/10/2026 — Guardia programada, fase B: segunda tanda de campo (Android). Sin cambios de
+  código, RPC ni forma de `data`.**
+  - **Bug SEMI vs SEMIDIRECTO confirmado en campo** (antes solo por código): un viaje con
+    `tipoServicio: "SEMI"` asignado desde el panel cerró con `kmTomeCese` 0 en el snapshot,
+    en el celu y en el servidor (jornada `9999999-20261012`; la del 11/10, TURNO, 42.5).
+    Sigue sin arreglar y sin decidir si se corrige en el panel o en `:shared`.
+  - **Constante:** el viático vale $455,26 (`MONTO_VIATICO` en `LaudoCalculator` de
+    `:shared`), no $455 como decía la documentación. El código no cambió.
+  - **Panel:** el de producción no anula guardias programadas ("Solo se pueden anular
+    guardias en curso"); eso llega con el merge + deploy de `feat/guardia-programada-paso5`.
+  - **Hallazgos de Android (en su cola, sin arreglar):** (a) al finalizar un viaje a mano,
+    lo que sigue a la llamada al servidor (rearmar la revisión de cierre, parar el GPS)
+    corre en el scope de la pantalla y puede no correr; el servicio de GPS queda vivo y,
+    por código, puede volver a finalizar un viaje ya cerrado porque el `UPDATE` local no
+    filtra por estado. (b) El reintento sin red de la activación automática de una guardia
+    llama `activar_guardia_en_jornada` con `p_inicio_ms`, y la RPC trata eso como inicio
+    manual ("se paga desde ese momento").
+  **Para iOS:** nada que implementar ahora. Al implementar: finalizar un viaje o una guardia
+  no puede depender de que la pantalla siga viva, y el cierre local tiene que filtrar por
+  `en_curso`; en una activación automática (con o sin reintento) no mandar `p_inicio_ms`,
+  solo en "Iniciar guardia" a mano.
