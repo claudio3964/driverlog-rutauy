@@ -651,3 +651,33 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     la misma fecha que tenía la guardia; mensaje `editar_guardia` con `{guardiaId, inicio,
     tipo, inicioMs}`.
   **Para iOS:** nada que implementar; es el contrato de mensajes que va a recibir.
+
+- 11/10 (Android `main`; servidor en producción) — **Guardia programada, fase B: MIGRACIÓN
+  APLICADA EN PRODUCCIÓN (11/10 12:04) y primera tanda de campo en el Huawei.**
+  - **Servidor:** `20261010010000_guardia_programada_paso2.sql` aplicada (matriz 72/72,
+    regresiones 46/46 y 45/45). Ya rigen en producción las RPC descritas el 10/10
+    (`agregar_guardia_a_jornada` con máximo una guardia viva, `activar_guardia_en_jornada`,
+    `anular_guardia_panel`, `editar_guardia_en_jornada` con `p_inicio_ms`) y la forma nueva
+    de `data.guards[]` (`status: "programada"`, `inicioMs`, `asignacionId`, `activacion`,
+    `anulacion`). El rollback ya no es limpio: el Huawei tiene el APK de la fase B.
+  - **Panel:** el de producción sigue siendo el viejo; el del paso 5 (rama
+    `feat/guardia-programada-paso5`) se usó en local y falta mergear y deployar.
+  - **Campo (Android):** 24 casos del paso 6 cerrados; quedan casos y el cierre del frente
+    (detalle en `Estado_actual.md` del repo Android).
+  - **Reglas de negocio validadas por Claudio (no cambian el código):** viático por franjas
+    14:00 y 23:00 con 3 h 30 desde el inicio y respaldo de 9 h trabajadas; tome y cese
+    42,5 km una vez por jornada, sin cese aparte; todos los viajes llevan tome salvo
+    PASAJERO; el semidirecto es un viaje común y lleva tome; un "movimiento" y un contratado
+    corto se cargan como guardia especial por hora.
+  - **Hallazgos que tocan a los dos clientes (en la cola de Android, sin arreglar):**
+    (a) **el panel manda `tipoServicio: "SEMI"` y `LaudoCalculator` (`:shared`) espera
+    "SEMIDIRECTO"**: un semidirecto asignado desde el panel queda sin tome y cese; como el
+    cálculo es de `:shared`, le pasa igual a iOS (por código, falta la prueba). (b) Una
+    guardia asignada "para mañana" cae en la jornada del día en que el cliente recibe el
+    mensaje, no en la de `inicioMs`: frena el cierre de esa jornada o choca con 409
+    `JORNADA_CERRADA`. (c) En Android el corte de guardia 15 min antes de un viaje solo se
+    programa en el sync, y el cierre automático de jornada puede correr a menos de 1 h de la
+    última actividad (timer con `KEEP`).
+  **Para iOS:** nada que implementar ahora. Al implementar guardias y el cierre de jornada, no
+  copiar (b) ni (c) tal cual; y no "arreglar" (a) solo de un lado: se decide si se corrige en
+  el panel o en `:shared`.
