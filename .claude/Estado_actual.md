@@ -119,6 +119,14 @@ es para cuando se implemente cada cosa (ver Próximos pasos, punto 4).
    que copiar.
 5. Si se conecta otra pantalla a un tipo de `:shared`, seguir la convención de commit
    detallado del `CLAUDE.md` de este repo.
+6. **Desde Windows, después de la prueba del SEMI y junto con el merge de `fix/semi-alias` a
+   `main` de `app-kilometros-completa`: agregar la entrada del 13/10 a `PANORAMA.md`** (no se
+   escribió el 13/10 a propósito) y propagarla a esta copia según el paso 6 del protocolo. Qué
+   tiene que decir: legajo canónico cerrado también en iOS (`52b0fcf`; la entrada del 04/10
+   dice "falta iOS"); tests de `:shared` en `iosSimulatorArm64` 84 OK sobre `ac1f215`,
+   incluido `LaudoTipoSemiTest` (6 casos), con el xcframework regenerado; el Dashboard de iOS
+   consume `LaudoCalculator` con una jornada de muestra en `"SEMI"` (`ff38f9c`); y que el bug
+   SEMI se corrigió en `:shared`, no en el panel.
 
 ---
 
