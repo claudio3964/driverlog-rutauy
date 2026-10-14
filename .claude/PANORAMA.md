@@ -721,3 +721,23 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   iOS decide qué viaje lleva tome y cese, que llame a `LaudoCalculator.ameritaTomeCese` y no
   compare el tipo contra una lista propia. **Para el panel:** nada obligatorio; si algún día
   pasa a mandar "SEMIDIRECTO", los dos valores dan lo mismo.
+
+- **13/10/2026 (noche) — Bug SEMI: verificado en campo (card, Android) y en `origin/main` del
+  repo Android (`ac1f215`).** *(Propagada desde Android el 13/10; corrige la nota de la
+  entrada anterior: `fix/semi-alias` ya no existe en el remoto, el arreglo está en `main`.)*
+  - **Campo (Huawei, APK con `04ea909`):** viaje asignado desde el panel de producción con
+    `tipoServicio: "SEMI"`, finalizado → tome y cese 42,5 km discriminado en el resumen del
+    día, 220,5 km, $1.766,69. El PDF (marca T/C) queda como verificación final, no bloquea.
+  - **Push en el repo Android:** `main` en `origin` (`ac1f215`); la rama `fix/semi-alias` se
+    borró del remoto. Anular un viaje programado desde el panel (`cancelar_viaje`) funcionó
+    en el mismo campo.
+  - **Hallazgo en Android, por lectura de código, a verificar en campo (media-alta):** editar
+    un viaje desde el panel no llega al celu por el polling: `MensajesPollingWorker` procesa
+    `asignacion`, `editar_guardia` y `cancelar_viaje`, sin rama para editar un viaje. El sync
+    reemplaza el viaje con lo del servidor, así que el cambio podría verse al reabrir la app,
+    pero sin reprogramar la activación ni el GPS. Un cambio de tipo, hora o coche puede
+    liquidarse mal.
+  **Para iOS (este repo):** regenerar `sharedKit.xcframework` desde `origin/main` del repo
+  Android: el SEMI queda corregido sin tocar Swift. Al implementar la recepción de mensajes
+  del panel, contemplar la edición de un viaje (tipo, hora, coche) y reprogramar lo que
+  dependa de la hora; no copiar el hueco de Android.
