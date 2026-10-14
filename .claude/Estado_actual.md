@@ -8,15 +8,6 @@
 
 ## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
 
-- **01/10 — ANTES de la próxima sesión en la Mac: `git pull`.** Desde Windows se commiteó
-  `.claude/PANORAMA.md` (entradas 30/09: fase 0 tanda 2 -- RPC de jornada/mensajes exigen
-  `X-Chofer-Token`; y 01/10: trigger de `travels` en prod + no replicar el patrón de activación
-  de Android). Leer esas dos entradas antes de tocar activación de viajes o mensajes en iOS.
-  **Sigue vigente al 13/10:** tras un `git fetch`, `origin/main` (`4aedff5`) tiene 18 commits
-  que `main` local no tiene — entradas de `PANORAMA.md` del 04/10 al 12/10 (legajo canónico en
-  servidor + Android, `TransicionesViaje`, anular asignación, guardia programada, bug SEMI) y
-  un cambio al paso 6 del protocolo de cierre. No se hizo `pull` ni se leyeron en la sesión
-  del 13/10: lo que este archivo dice sobre el lado servidor puede estar viejo.
 - **Un frente a la vez, hasta cerrarlo.** Todo hallazgo nuevo se anota en la cola (1-2 líneas:
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
@@ -28,29 +19,6 @@
   `sharedKit.JornadaCompleta` fijo armado en Swift) y que el banner "EN CURSO" y la lista
   `eventos` dejen de estar hardcodeados.
 - **Cola:**
-  - **FRENTE NUEVO, PRIORITARIO — para la próxima sesión en el PC Windows — normalizar
-    `legajo` a mayúsculas (decidido 03/10, diagnóstico ya corrido en el repo Android).**
-    El servidor (`login-chofer/index.ts:108`, `activar-chofer/index.ts:119`) compara
-    `legajo` con igualdad exacta — "TEST01" ≠ "test01" falla, y en `login-chofer` ese
-    mismatch cuenta contra el umbral de bloqueo (`UMBRAL_DEVICE_MISMATCH=3`) — afecta a
-    Android también, no es solo un problema de iOS. **Resultados del diagnóstico**
-    (`supabase/diagnostico/20261003_legajo_case_sensitivity.sql` del repo Android):
-    todos los legajos ya canónicos, sin colisiones, sin FKs reales sobre `legajo`;
-    existe como columna `text` en 8 tablas (`choferes`, `jornadas`, `viajes`,
-    `inconsistencias_cierre`, `inconsistencias_continuidad`, `registro_alertas`,
-    `alertas_login_chofer.legajo_objetivo`, `private.backup_jornadas_rotacion_20260917`),
-    sin integridad referencial declarada en ninguna. **Decisión:** forma canónica en
-    mayúsculas con `CHECK` solo en `choferes` (sin `citext`, sin migración de datos —
-    ya están todos canónicos); las Edge Functions normalizan con
-    `trim().toUpperCase()`; el alta del panel (`cot-admin-next`) manda el legajo ya en
-    mayúsculas. Implementación pendiente (migración + Edge Functions + panel) — ver
-    detalle en la cola de `Estado_actual.md` del repo Android. **Lado iOS: hecho el 13/10**
-    — `LoginViewModel` manda el legajo canónico (trim + mayúsculas, mismo criterio que
-    `normalizarLegajo` de `ViajeRepositoy.kt`) y guarda como legajo de sesión
-    `SesionChoferDto.legajo`, con fallback al enviado mientras `login-chofer` lo devuelva
-    null. El campo de `LoginView` sigue mostrando lo tipeado tal cual (con
-    `.textInputAutocapitalization(.characters)` como sugerencia de teclado); la
-    normalización se aplica al enviar. Sigue pendiente todo el lado servidor y panel.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
   - **Para cuando se conecte `NuevoViajeView` (no se hace ahora):** reemplazar el toggle
@@ -67,6 +35,12 @@
     `MONTO_VIATICO` son `private` en `LaudoCalculator.kt` y el header ObjC solo exporta
     `calcular(jornada:laudoKm:montoViatico:)`, así que Swift duplica los dos valores. Se hace
     junto con el próximo cambio en `:shared`.
+  - **El alias `SEMI` → `SEMIDIRECTO` todavía no está en `main` de `app-kilometros-completa`**
+    (al 13/10 vive solo en `fix/semi-alias`, `04ea909`; `origin/main` es `434a059`). PANORAMA
+    11/10 y 12/10 decían "no arreglar solo de un lado" y que faltaba decidir si se corrige en
+    el panel o en `:shared`: esa rama lo corrige en `:shared`. Si se regenera el xcframework
+    desde `main` sin ese merge, `jornadaDeMuestra` (tipo `"SEMI"`) pierde el tome y cese y el
+    Dashboard vuelve a 220.0 km / $1762.68. Gravedad: media, hasta que la rama se mergee.
   - `LoginViewModel.legajoSesion` todavía no lo lee nadie: `jornadaDeMuestra` va con
     `legajo: ""` y `ContentView.swift:77` con `"4112"` hardcodeado. Gravedad: baja, se
     resuelve al conectar la jornada real.
@@ -104,13 +78,22 @@ contra el `sharedKit.xcframework` regenerado desde `app-kilometros-completa` en
 Tests de `:shared` en `iosSimulatorArm64`: 84 OK, incluido `LaudoTipoSemiTest` (6 casos).
 
 - **Login:** legajo canónico al enviar y `SesionChoferDto.legajo` como fuente de la sesión
-  (`52b0fcf`). La sesión sigue solo en memoria y contra `FakeChoferAuthApi`.
+  (`52b0fcf`). Con esto el frente del legajo queda cerrado en los tres lados: servidor y
+  Android ya lo estaban desde el 04/10 (PANORAMA: `CHECK choferes_legajo_canonico`,
+  `login-chofer` v17 y `activar-chofer` v14 normalizan, el 200 de `login-chofer` trae
+  `legajo`). Sin probar contra el servidor real: la sesión de iOS sigue solo en memoria y
+  contra `FakeChoferAuthApi`.
 - **Dashboard:** totales desde `LaudoCalculator` (`ff38f9c`), con la jornada de muestra en
   `tipoServicio: "SEMI"` (decisión de Claudio, 13/10). Muestra **262.5 km / $2103.20**
   (220 de viaje + 42,5 de tome y cese; 0 viáticos por ser un viaje en curso). Verificado
   ejecutando el código de `DashboardView` en el simulador, no recorriendo la pantalla a mano.
 - **Tipos de servicio en Swift:** no hay ninguna lista ni comparación literal — la lista y el
   alias viven solo en `:shared`.
+
+**`main` local y la rama están al día con `origin/main` (`4aedff5`, 13/10).** Se leyeron las
+entradas de `PANORAMA.md` del 04/10 al 12/10. Lo que piden para iOS y ya está: regenerar el
+xcframework, correr los tests de `:shared` en iOS, y el legajo canónico en el login. Lo demás
+es para cuando se implemente cada cosa (ver Próximos pasos, punto 4).
 
 **Entorno de esta Mac:** no hay Java en el PATH ni Android Studio; para Gradle se usó
 `JAVA_HOME=~/Developer/jdk/jdk-21.0.12.1+1/Contents/Home`.
@@ -120,14 +103,21 @@ Tests de `:shared` en `iosSimulatorArm64`: 84 OK, incluido `LaudoTipoSemiTest` (
 ## PRÓXIMOS PASOS
 
 1. Decidir qué se hace con `feat/ios-legajo-dashboard` (PR / merge a `main`) — pusheada a
-   `origin` el 13/10. Salió de `main` local en `936dbe0`, que estaba 18 commits detrás de
-   `origin/main` (ver aviso al principio); el merge de prueba no da conflictos.
+   `origin` el 13/10, con `origin/main` ya mergeado adentro.
 2. Cerrar el frente actual: jornada real en el Dashboard en vez de `jornadaDeMuestra`. Antes,
    confirmar contra `.claude/PANORAMA.md` de dónde sale esa jornada (regla de secuencia:
    primero `:shared`).
 3. Con el próximo cambio en `:shared`: exponer laudo y viático (ver cola) y regenerar el
    xcframework.
-4. Si se conecta otra pantalla a un tipo de `:shared`, seguir la convención de commit
+4. **Antes de implementar viajes, guardias, mensajes o cierre de jornada en iOS, leer los
+   "Para iOS" de `PANORAMA.md`** (entradas del 30/09 al 12/10). Lo que más cambia respecto de
+   lo que iOS tiene hoy: `TransicionesViaje` y `TransicionesGuardia` de `:shared` en vez de
+   reglas propias (`resultadoCancelacionPanel`, no `cancelablePorPanel`, que ya no existe);
+   `cancelar_viaje` con `fuente` / `asignacionId` (`Models/Mensaje.swift`); ids
+   `ASG-<mensaje_id>-<ORI>`; guardias con estado `programada`, `inicioMs` y `asignacionId`;
+   jornadas con `data.deleted = true`; y los hallazgos de Android del 11/10 y 12/10 que no hay
+   que copiar.
+5. Si se conecta otra pantalla a un tipo de `:shared`, seguir la convención de commit
    detallado del `CLAUDE.md` de este repo.
 
 ---
@@ -137,7 +127,8 @@ Tests de `:shared` en `iosSimulatorArm64`: 84 OK, incluido `LaudoTipoSemiTest` (
 - **13/10/2026** — Legajo canónico en el login de iOS (`52b0fcf`); totales del Dashboard
   desde `LaudoCalculator` de `sharedKit` (`ff38f9c`); cola: tipos de servicio y ciudades de
   `NuevoViajeView` desde `:shared` (`3abb003`), laudo y viático desde `:shared`. Detalle de
-  mapeos y cifras en el cuerpo de `ff38f9c`.
+  mapeos y cifras en el cuerpo de `ff38f9c`. `origin/main` (18 commits de `PANORAMA.md`,
+  04/10 al 12/10) mergeado en la rama.
 
 ---
 
