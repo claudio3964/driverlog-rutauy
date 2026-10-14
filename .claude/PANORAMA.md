@@ -13,7 +13,8 @@
 > **Corrección 29/09 (reemplaza la "Corrección 16/09", que era falsa):** en GitHub hay UN solo
 > repo, `claudio3964/app-kilometros-completa`, con dos ramas sin historia común:
 > - `main` = Kotlin + `:shared` — núcleo Android, producción (sección 2).
-> - `dev-rebuild-core` = JS/Capacitor legacy, rama huérfana (sección 5).
+> - `dev-rebuild-core` = JS/Capacitor legacy, rama huérfana, **congelada 08/10** (tag
+>   `legacy-panel-js`, sección 5).
 >
 > `cot_devapp_kilometros-completa-android-koltin` NO es un repo: es solo el nombre de la carpeta
 > local del checkout en el PC Windows (confirmado con `git remote -v` en el PC, que apunta a
@@ -90,8 +91,9 @@ Mensajes del panel, gap de reactividad Home con actividad *programada* (no solo 
 
 ## 4. Panel — `cot-admin-next`
 
-**Estado:** deployado en Netlify (preview), 10 tabs cargando sin errores, sin blockers de
-deploy pendientes. Deuda no bloqueante: ~31 errores de lint (`react-hooks/set-state-in-effect`
+**Estado (08/10):** **único panel web en producción**, en `https://cot-driver-admin.netlify.app`.
+Deploy manual (`npm run build && npm run zip` → subir el zip a Netlify); el repo no está
+conectado a Netlify, un push no publica nada. El panel JS viejo está retirado (sección 5). Deuda no bloqueante: ~31 errores de lint (`react-hooks/set-state-in-effect`
 sobre todo), credenciales Supabase duplicadas en ~13-14 archivos.
 
 **Pendientes (features, no bugs):** tab de historial de actividad del chofer con edición
@@ -102,7 +104,14 @@ negocio se van a tomar con esos datos primero).
 
 ## 5. JS/Capacitor legacy — `app-kilometros-completa`, rama `dev-rebuild-core` (huérfana)
 
-**Estado:** app de chofer ya migrada 100% a Kotlin (sección 2) — esta rama queda como legacy,
+**Estado (08/10): RETIRADA Y CONGELADA.** Frente "Retiro del repo JS" cerrado: rama congelada
+(README LEGACY, tag `legacy-panel-js`), sin nada vivo — las Edge Functions y `config.toml` tienen
+fuente única en `main`; el sitio Netlify del panel viejo (`cot-driver-admin-viejo`) fue eliminado;
+el clon JS local quedó sin `origin`. No se trabaja ni se deploya nada desde esta rama. Backups en
+`C:\cot_dev\archivo\` y en Google Drive ("COT Driver / archivo-legacy-2026-10-08"). El texto de
+abajo es histórico.
+
+**Estado anterior (16/09, histórico):** app de chofer ya migrada 100% a Kotlin (sección 2) — esta rama queda como legacy,
 pero sigue teniendo código real cargado desde `www/index.html` (`ui_registro.js`,
 `push_notifications.js`, `sync.js`, `ui_mensajes.js`), mantenido por seguridad aunque no haya
 confirmación de uso real en dispositivos hoy. También contiene el panel admin viejo
@@ -360,3 +369,337 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **En iOS, mientras tanto:** el campo Legajo tiene autocorrección desactivada y
   `.textInputAutocapitalization(.characters)` (solo sugiere mayúsculas en el teclado, no
   normaliza el valor real) — paliativo de UX, no resuelve el fondo.
+- 04/10 (Windows) — **Cerrados los dos pendientes de `:shared` del 03/10.** Sobre `main` `1478fbc`:
+  `:shared:testAndroidHostTest --rerun` da **42/42** (`ChoferAuthDecodingTest` 19/19 en JVM,
+  igual que en iOS; el conteo correcto es 19, no los 18 de la entrada 03/10), y
+  `:app:assembleDebug` compila sin errores con SKIE 0.10.15 + `kotlinx-coroutines-core` 1.7.3.
+  **Para iOS:** el `:shared` actual se puede usar tal cual desde los dos lados.
+  `FakeChoferAuthApi` todavía no tiene tests ni consumidores; se testea cuando lo use alguno de
+  los dos clientes (tests de `:app` o previews de iOS).
+- 04/10 (Windows) — **Legajo canónico CERRADO en servidor + Android; falta iOS.** Forma única de
+  `choferes.legajo` = mayúsculas sin espacios en los bordes. Aplicado en prod:
+  `CHECK choferes_legajo_canonico` en `choferes` (insert en minúsculas → 23514, probado con
+  ROLLBACK); `alta_chofer_supervisor` y `generar_codigo_enrolamiento` normalizan `p_legajo` con
+  `upper(btrim(...))` (migración `20261004010000_legajo_canonico.sql`); `login-chofer` (v17) y
+  `activar-chofer` (v14) normalizan con `trim().toUpperCase()` antes de comparar, así que un
+  legajo con otra capitalización ya no cuenta contra el umbral de bloqueo. **Cambio de
+  contrato:** el 200 de `login-chofer` trae un campo nuevo, `legajo` = `dueño.legajo`
+  (canónico, de `choferes`). **`:shared`:** `SesionChoferDto.legajo: String? = null`
+  (opcional), con su caso en `ChoferAuthDecodingTest` (43/43 en JVM). **Android** (`daadda9`):
+  manda `trim().uppercase()` y guarda como sesión el `legajo` del 200, no lo tipeado; si viene
+  null, usa el enviado ya normalizado. Probado en el Huawei con 9999999.
+  **Para iOS (Mac):** regenerar el `.xcframework`; en el login, normalizar el legajo antes de
+  mandarlo (`trimmingCharacters(in: .whitespaces).uppercased()`) y guardar
+  `SesionChoferDto.legajo ?? enviadoNormalizado` como legajo de la sesión. El paliativo de
+  `.textInputAutocapitalization(.characters)` puede quedar como UX. Sin migración de datos del
+  lado cliente: todos los legajos ya eran canónicos. Cola del frente en `Estado_actual.md` del repo Android.
+- 05/10 (Windows) — **`TransicionesViaje` llega a `:shared` en `main` (merge de bug 1 3b.1, `9dc3f6c`).**
+  `shared/src/commonMain/.../TransicionesViaje.kt` (commits `b4beeaf`, `33f387f`): regla única de
+  transiciones de estado de un viaje (P `programado` / E `en_curso` / F `finalizado` /
+  C `cancelado`), espejo del trigger `trg_jornadas_travels` (3a.1). Transiciones legales:
+  P→E, P→C, E→F; F y C son terminales; nunca P→F ni E→C. Expone `transicionLegal`,
+  `activable` y `cancelablePorPanel` (solo P); `decidirMerge` para el sync (remoto C gana
+  sobre local P/E; local C se conserva frente a remoto P/E; F contra C no se toca, es
+  conflicto para 3b.3; en el resto gana el más avanzado, empate → remoto);
+  `inicioActivacion` (qué `inicioReal` usar si `activar_viaje` no respondió: la hora
+  oficial, o min(pedida, oficial) en "Iniciar ahora" salvo más de 10 min de adelanto) e
+  `interpretarActivacion` (respuesta de la RPC `activar_viaje`).
+  Android la usa en el sync (`SyncMerge.kt`) y en `ActivarViajeWorker`. Tests: 
+  `TransicionesViajeTest` 7/7 y `:shared:testAndroidHostTest` 50/50 en Windows (como ya decía
+  la entrada del 04/10, esa task corre `commonTest` en JVM; el mensaje del merge lo presenta
+  como hallazgo nuevo, no lo es).
+  **Flujo que cambió en Android (para no divergir):** activar un viaje programado = primero
+  `activar_viaje` en el servidor, y solo si activó (o no respondió) queda en curso local y
+  arranca el GPS; "Iniciar ahora" manda la hora del toque y un motivo si es más de 10 min antes
+  (el servidor ajusta `inicio_real` a la hora programada con `ajuste=ADELANTO_MAYOR_AL_LIMITE`);
+  la app ya no cancela un viaje en curso (A7 fuera); `cancelar_viaje` del panel solo anula
+  programados.
+  **Para iOS (Mac):** regenerar el `.xcframework`; correr los tests de `:shared` en los targets
+  iOS; cuando iOS implemente activación/sync de viajes, usar `TransicionesViaje` en vez de
+  reglas propias.
+- 05/10 (Windows) — **`cancelar_viaje` cambia de rol: el panel anula en el servidor con
+  `anular_viaje_panel` (bug 1 3b.2, aplicada en prod; panel `cot-admin-next` `5058320` en prod).**
+  RPC `anular_viaje_panel(p_viaje_id, p_motivo) → jsonb`, **solo admin**: pasa el viaje P→C en
+  `jornadas.data.travels`, le agrega la clave **`anulacion` = {at, por, motivo, edicion_id}**,
+  audita en `private.ediciones_viaje` (columna nueva `operacion` = `'anulacion'`) e inserta el
+  mensaje `cancelar_viaje`, todo en una transacción. E → 409 `VIAJE_EN_CURSO`, F → 409
+  `VIAJE_FINALIZADO`, jornada cerrada → 409 `JORNADA_CERRADA`, C → 200 idempotente. **Forma
+  nueva del `data` del mensaje `cancelar_viaje`:** `{viajeId, edicion_id, origen:
+  "anular_viaje_panel"}` — **claves nuevas `edicion_id` y `origen`**; en jornadas sin legajo
+  (rotación) no se manda mensaje. **El mensaje ya no es quien cancela:** cuando llega, el C ya
+  está en el servidor; es un aviso que el celu aplica en local (y a futuro confirma, capa 1).
+  Android hoy lee solo `viajeId` y aplica solo sobre P (sobre E/F marca leído e ignora); las
+  claves nuevas se ignoran sin romper. Migración `20261005010000_bug1_3b2_anular_viaje_panel.sql`
+  del repo Android.
+  **Para iOS (Mac):** al decodificar `cancelar_viaje` (`Mensaje.swift`), tolerar las claves
+  nuevas (opcionales: `edicion_id`, `origen`) y la clave `anulacion` dentro de un viaje de
+  `travels`; tratar el mensaje como aviso de algo que el servidor ya hizo (no reescribir el C
+  ni pelear contra el estado remoto), y aplicarlo solo sobre P, con `TransicionesViaje`
+  (`cancelablePorPanel`). Cola del frente en `Estado_actual.md` del repo Android.
+- 06/10 (Windows + Linux) — **Jornada borrada desde el panel: regla de cliente (A.4, merge
+  `4e32083` en `main`).** Una jornada soft-deleted por el panel (`borrar_jornada`: `data.deleted
+  = true` + `deleted_at`/`deleted_by`/`deleted_reason`, y deja `closed: true`) ya no reaparece en
+  Android. Regla, **solo ante `deleted = true` explícito leído OK** (de `estado_jornada` o del
+  `data` de la jornada): si en local estaba **activa o colgada → purga** (jornada + viajes +
+  guardias, cancela los timers/workers de esa jornada y frena el GPS si había un viaje en curso);
+  si estaba **cerrada → "anulada"**, con fecha/autor/motivo del borrado, **sin monto ni km y fuera
+  de todo total**; si no está en local (reinstalación) → "anulada" solo si tenía snapshot de
+  totales, si no se ignora. **Nunca inferir un borrado** de la ausencia de filas, de `[]`, de
+  `null` ni de un error de red. Sin cambios en Supabase (el `deleted` ya existía); en Android es
+  migración Room 15→16 (`anuladaAt/anuladaPor/anuladaMotivo`), interna.
+  **Para iOS (Mac):** cuando iOS liste o sincronice jornadas, filtrar `data.deleted = true` con
+  esta misma regla — en particular, no mostrar una borrada como cerrada con monto ni dejarla
+  bloqueando como colgada. Cola del frente en `Estado_actual.md` del repo Android.
+- 06/10 (Windows) — **"Anular asignación" paso 4, capa servidor APLICADA EN PROD (bug 1 3b.2;
+  migración `20261006010000_bug1_3b2_paso4_anular_asignacion.sql`, matriz 46/46).** Para todos
+  los clientes:
+  - **Id del viaje de una asignación: `ASG-<mensaje_id>-<ORI>`** (`<ORI>` = el sufijo de siempre,
+    `origen.take(3).uppercase()`, así `-PRU` sigue excluyendo pruebas en `LaudoCalculator` y
+    `travel_stats` sin tocarlos). Los viajes que crea el chofer siguen `VJL-<ms>-<ORI>`. El
+    servidor solo lee el número (`^ASG-<n>-`). Android lo empieza a usar con el APK del paso 4.
+  - **Alta de un viaje `ASG-` (`agregar_viaje_a_jornada` y trigger de `travels`):** 409
+    `ASIGNACION_ANULADA` si la asignación está anulada (también en un reintento con el mismo id:
+    el chequeo va antes del no-op idempotente), 409 `ASIGNACION_INVALIDA` si el mensaje no existe,
+    no es `asignacion` o es de otro legajo, y 409 `ASIGNACION_EN_OTRA_JORNADA` si el mismo id ya
+    está en otra jornada del legajo. Ids `VJL-` sin cambios.
+  - **RPC nueva `anular_asignacion_panel(p_mensaje_id, p_motivo) → jsonb`** (solo admin): busca
+    el viaje por `data.viajeId` o por `ASG-<id>-*`, lo anula con la misma lógica que
+    `anular_viaje_panel` y marca la asignación con un **formato único**: `respuesta = 'anulado'`,
+    `anuladoAt` (ISO UTC), `anuladoPor`, `anuladoMotivo`, `edicionId`, `mensajeCancelacionId`,
+    `anulacionResultado` (`cancelado` | `ya_cancelado` | `sin_viaje_en_servidor`) y `viajeId` si
+    lo encontró. Manda el `cancelar_viaje` **siempre**, también sin viaje en el servidor (el celu
+    puede tenerlo solo en local). El panel la empieza a usar en el paso H.
+  - **`cancelar_viaje`: la clave `origen` pasa a `fuente`.** ⚠️ **Corrige la entrada del 05/10**,
+    que le pedía a iOS tolerar `origen`. Forma nueva del `data`: `{fuente, viajeId?,
+    asignacionId?, edicion_id?}`, con `fuente` = `anular_viaje_panel` | `anular_asignacion_panel`.
+    Con `asignacionId` y sin `viajeId`, el cliente busca el viaje local por `id` que empiece con
+    `ASG-<asignacionId>-`.
+  - **Capa 1 — confirmación:** `responder_mensaje(p_mensaje_id, {confirmado: true, resultado})`
+    solo para `cancelar_viaje` (otro tipo → 409 `CONFIRMACION_NO_APLICA`). Escribe
+    `data.confirmacion = {at, resultado}` y marca leído; la primera confirmación queda.
+    `resultado`: `cancelado` (estaba P) | `cancelado_en_curso` (estaba E: se cancela y se frena
+    el GPS, mismo criterio que `TransicionesViaje.decidirMerge`: el C del servidor gana) |
+    `ya_cancelado` | `no_esta_en_celu` | `finalizado` (F local no se toca, conflicto de la capa 3).
+    La rama `viajeId`/`guardiaId` de `responder_mensaje` no cambia.
+  **Para iOS (Mac):** al decodificar `cancelar_viaje` (`Mensaje.swift`), leer `fuente` (no
+  `origen`) y `asignacionId` opcional. Cuando iOS cree viajes desde una asignación, usar el id
+  `ASG-<mensaje_id>-<ORI>` con el mismo sufijo, y confirmar el `cancelar_viaje` con la misma lista
+  de resultados. Cola del frente en `Estado_actual.md` del repo Android.
+
+- 08/10 (Android `main`) — **Edge Functions: `main` es la única fuente.** `4ac88da` trae
+  `enviar-push-viaje` (= `ac4cde0`, D5, prod v48) y `supabase/config.toml` desde
+  `dev-rebuild-core`; el toml fija `verify_jwt` por función igual a prod (`crear-admin` true;
+  `enviar-push-viaje`, `login-chofer`, `refresh-chofer`, `activar-chofer` false). La rama JS ya
+  no tiene nada vivo y queda congelada (tag `legacy-panel-js`); su copia de este archivo se
+  congela en el sync `55d2fa4` (01/10) y **deja de sincronizarse** — la vigente es esta.
+  **Pendiente (no resuelto):** `enviar-push-mensaje` y `bright-processor` están en prod pero sin
+  carpeta en `supabase/functions/` (solo en `supabase/_rescate_20260929/`, fuera del toml).
+  Decisión a tomar: traerlas a `functions/` si se usan, o borrarlas de prod si no (hasta el 29/09
+  las dos se usaban: webhook `push-mensaje-nuevo` y panel Next) → camino probable: traerlas,
+  previo `supabase functions download` a carpeta temporal + diff contra `_rescate`. **Para iOS:** nada cambia en
+  contratos ni RPCs; si algún día se deploya una función, es desde `main`.
+
+- 08/10 (Android `main`, cont.) — **Las 7 Edge Functions tienen fuente en `main`.**
+  `enviar-push-mensaje` (v19) y `bright-processor` (v16) bajadas de prod, idénticas a
+  `_rescate_20260929`, copiadas a `supabase/functions/` y agregadas a `config.toml`
+  (`verify_jwt = false` las dos, verificado en prod). Callers: `enviar-push-mensaje` ← trigger
+  `push-mensaje-nuevo` (AFTER INSERT ON `mensajes`); `bright-processor` ← solo el panel Next
+  (push FCM a un token). Las otras 5 deployadas también se bajaron y son iguales a `main`. Nada
+  deployado. **No renombrar `bright-processor`** aunque el nombre no diga nada: cambia la URL y
+  rompe al panel. En cola: posible push doble por mensaje del panel (las dos funciones mandan
+  para `asignacion`/`urgente`, sin verificar) y retirar `_rescate_20260929/`. **Para iOS:** nada cambia en
+  contratos ni RPCs.
+
+- 08/10 (Android `main`, cierre) — **Frente "Retiro del repo JS" CERRADO.** Fuente única de
+  Supabase en `main` (las 7 Edge Functions + `config.toml`); `dev-rebuild-core` congelada con tag
+  `legacy-panel-js`; el clon JS local quedó sin `origin`; el sitio Netlify del panel viejo fue
+  eliminado. Backups en la PC Windows: `C:\cot_dev\archivo\js-legacy-20261008.bundle` (todas las
+  ramas, tags y stashes del clon JS), `C:\cot_dev\archivo\app-updates\` (bucket OTA viejo) y el
+  zip del panel viejo; copia en Google Drive ("COT Driver / archivo-legacy-2026-10-08").
+  Queda abierto solo lo del frente push real (hardening de
+  `bright-processor`, push doble). **Para iOS:** nada cambia; ningún cliente usa el bucket
+  `app-updates` ni la rama JS.
+
+- 10/10 (Android `main`) — **Paso 4 de "Anular asignación", lado app, en `main` (merge `fcd0c9a`
+  de `fix/bug1-3b2-paso4`; campo I, 7 casos, cerrado).** El contrato de servidor es el de la
+  entrada 06/10 (id `ASG-<mensaje_id>-<ORI>`, `cancelar_viaje` con `fuente`/`asignacionId`,
+  confirmación de capa 1); no cambió nada en Supabase. Lo nuevo:
+  - **`:shared`: `TransicionesViaje.ResultadoCancelacionPanel` reemplaza a `cancelablePorPanel`,
+    que ya no existe.** ⚠️ **Corrige las entradas del 05/10**, que le pedían a iOS usar
+    `cancelablePorPanel`. `resultadoCancelacionPanel(statusLocal)` devuelve qué hacer y qué
+    confirmar: sin viaje → `no_esta_en_celu`; P → `cancelado`; E → `cancelado_en_curso`; C →
+    `ya_cancelado`; F → `finalizado`. Cada valor trae `wire` (el string de `resultado` para
+    `responder_mensaje`) y `cancelaEnCelu`. `:shared:testAndroidHostTest` 50/50 en Windows.
+  - **Flujo en Android (para no divergir):** `cancelar_viaje` busca el viaje por `viajeId` o por
+    prefijo `ASG-<asignacionId>-`; P → C; **E → C, frena el GPS, borra `inicioReal` y avisa al
+    chofer** ("El panel anuló este viaje. Comunicate con Tránsito."; es el único resultado que
+    notifica); F no se toca; después confirma. Una confirmación rechazada con 4xx permanente no
+    se reintenta. Reprocesar una asignación cuyo viaje ya existe en local no lo recrea. Un 409
+    `ASIGNACION_*` al dar de alta deshace solo ese viaje local.
+  - **Validado en campo:** un E local anulado (P en el servidor) no suma en el Historial ni en
+    el `totalsSnapshot` del cierre.
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; al implementar `cancelar_viaje`, usar `resultadoCancelacionPanel` y mandar su
+  `wire` en la confirmación.
+
+- 10/10 (Android `main`) — **`:shared`: `SolapamientoValidator.inicioGuardiaParaCierre` (frente
+  "guardia con hora futura → estado programada", fase A; escrita y con tests, FALTA el campo).**
+  Regla nueva para cerrar una guardia en curso: `inicioGuardiaParaCierre(horaInicio, createdAt,
+  ahora)` devuelve `Valido(inicioMs)`, `FinAnteriorAInicio(inicioMs)` o `HoraInvalida`. Una hora
+  de inicio "HH:mm" de hoy que todavía no llegó **ya no se lee como "arrancó ayer"** salvo cruce
+  real de medianoche (la guardia ya existía cerca de esa hora de ayer: `createdAt` no es
+  posterior a ella en más de `MARGEN_INICIO_ANTES_DE_CREACION_MS` = 3 h, parche heurístico).
+  Si no, el cierre se **rechaza**: la guardia queda en curso, nunca se pagan +24 h (antes, una
+  guardia asignada para más tarde y cerrada antes de su hora cobraba ~24 h).
+  `parsearInicioGuardiaMs` no cambia. `:shared:testAndroidHostTest` 55/55 en Windows
+  (`InicioGuardiaCierreTest`, 5 casos).
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; al implementar el cierre de guardias usar esta función y tratar
+  `FinAnteriorAInicio` como rechazo (no cerrar). **Viene la fase B (en relevamiento, sin
+  decidir el detalle):** las guardias van a tener un estado `programada` (hora futura → no nace
+  `en_curso`) y probablemente el inicio pase a fecha+hora completa; va a cambiar la forma de
+  `data.guards[]` — habrá otra entrada cuando se decida.
+- 10/10 (Android `main`) — **`:shared`: reglas de la guardia `programada` (frente "guardia con
+  hora futura", fase B, paso 1 de 7; solo `:shared`, todavía nada lo usa en la app, el servidor
+  ni el panel).** Decisiones de Claudio que valen para los dos clientes:
+  - **Estados de guardia:** `programada`, `en_curso`, `finalizada`, `cancelado`. Legales:
+    programada→en_curso, programada→cancelado, en_curso→finalizada, en_curso→cancelado. Nace
+    `programada` si su inicio es futuro (`TransicionesGuardia.estadoInicial`).
+  - **Máximo UNA guardia viva (programada o en curso) por chofer** (`puedeAgregarse`). Las
+    programadas **no se editan** (anular y reasignar) y **solo las anula tránsito**: el chofer no
+    tiene botón de cancelar. Una programada frena el cierre automático de la jornada y
+    **bloquea** el manual (`pendiente`).
+  - **Activación** (`decidirActivacion` + `SolapamientoValidator.viajeQueImpideActivarGuardia`):
+    a su hora pasa a `en_curso`, salvo que haya un viaje en curso o uno programado que arranca
+    en 15 min o menos → queda programada ("no iniciada"), sin activación automática posterior;
+    el chofer la inicia a mano (se paga desde ese momento) o tránsito la anula y reasigna.
+  - **`inicioMs` (epoch ms) aditivo** en `Guardia`, en `data.guardia.inicioMs` del mensaje
+    `guardia` y en `inicioMs` de `editar_guardia`; "HH:mm" se mantiene. Lo va a mandar el panel
+    (selector hoy/mañana). Sin `inicioMs` (mensaje viejo): `inferirInicioGuardiaMs` — hora ya
+    pasada hace más de 3 h = mañana; hora futura con la de ayer a 3 h o menos = ayer.
+    `inicioGuardiaParaCierre` acepta `inicioMs` y con él no usa la heurística de `createdAt`.
+  - **`LaudoCalculator` ya no cuenta guardias `programada` ni `cancelado`** (km, horas de
+    jornada, viático). Arregla un bug vigente: una cancelada con hora de inicio y sin fin
+    entraba al viático como "en curso hasta ahora" (test: 2 viáticos de más).
+  `:shared:testAndroidHostTest` 77/77 en Windows.
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; usar `TransicionesGuardia` para todo lo que hoy asuma "guardia = en_curso".
+  **Viene (pasos 2 a 5, habrá entrada por cada uno):** RPCs `activar_guardia_en_jornada` y
+  `anular_guardia_panel`, rechazo de una segunda guardia viva en `agregar_guardia_a_jornada`,
+  `editar_guardia_en_jornada` con `inicioMs` y sin hora futura; `status: "programada"` e
+  `inicioMs` en `data.guards[]`.
+- 10/10 (Android `main`) — **Servidor: RPC de la guardia programada (fase B, paso 2).
+  MIGRACIÓN ESCRITA, NO APLICADA** (`20261010010000_guardia_programada_paso2.sql`; se aplica
+  junto con el APK del paso 3). Lo que va a cambiar para los dos clientes cuando se aplique:
+  - **`agregar_guardia_a_jornada`** (misma firma): una guardia nace solo `programada` o
+    `en_curso`; `programada` exige `inicioMs`; `en_curso` con `inicioMs` a más de 10 min →
+    409 `GUARDIA_INICIO_FUTURO`; ya hay una viva en la jornada → 409
+    `GUARDIA_VIVA_EXISTENTE`; mismo `id` otra vez → no-op (antes duplicaba); `id` obligatorio.
+  - **Campo nuevo `guards[].asignacionId`** = id del mensaje `guardia` que la originó (lo pone
+    el cliente al crearla desde una asignación, y lo copia al tramo nuevo en un cambio de
+    tipo). Con él el servidor rechaza el alta de una asignación anulada (409
+    `ASIGNACION_ANULADA` / `ASIGNACION_INVALIDA`, mismos códigos que los viajes) y encuentra
+    la guardia al anular sin depender del enlace `data.guardiaId`.
+  - **`activar_guardia_en_jornada(p_guardia_id, p_order_number, p_inicio_ms?)`** nueva (chofer):
+    programada → en_curso. Sin `p_inicio_ms` cuenta desde el inicio programado; con él (botón
+    "Iniciar guardia") desde ese momento. Devuelve `{activada, status_actual, inicio_ms,
+    inicio, motivo?, ajuste?}`; el cliente adopta `inicio`/`inicio_ms` de la respuesta y, si
+    `activada=false`, el `status_actual`. No valida viajes: eso lo decide el cliente con
+    `TransicionesGuardia.decidirActivacion`.
+  - **`anular_guardia_panel(p_mensaje_id, p_motivo)`** nueva (admin): cancela la guardia viva
+    (programada o en curso), audita, marca la asignación anulada y manda `cancelar_guardia`
+    **siempre**, con forma nueva `{fuente, asignacionId, guardiaId?, edicion_id?}` — el
+    cliente tiene que buscar la guardia por `guardiaId` **o por `asignacionId`** (puede venir
+    sin `guardiaId` si el servidor no la tenía).
+  - **`editar_guardia_en_jornada(p_guardia_id, p_inicio, p_inicio_ms?)`**: programada → 409
+    `GUARDIA_PROGRAMADA_NO_EDITABLE`; hora futura → 409 `INICIO_FUTURO`; guardia con
+    `inicioMs` editada sin `p_inicio_ms` → 400 `INICIO_MS_REQUERIDO`.
+  **Para iOS:** nada que hacer hasta que se aplique; al implementar guardias, usar estas RPC y
+  mandar `asignacionId` e `inicioMs`.
+- 10/10 (Android `main`) — **Guardia programada, paso 3: `:shared` + lado app (datos). Sin
+  instalar, sin campo; la migración del servidor sigue sin aplicar.**
+  - **`:shared`:** `Guardia.asignacionId: Long?` (id del mensaje `guardia` de origen; un cambio
+    de tipo lo copia al tramo nuevo). `CancelarGuardiaData.asignacionId: Long?`.
+    `SolapamientoValidator.viajeQueImpideActivarGuardia(viajes, momento)`: el segundo parámetro
+    pasó de "ahora" a un momento cualquiera — el respaldo tardío pregunta también por la hora
+    de inicio de la guardia (cuenta el viaje ya terminado que estaba en curso en ese momento y
+    el que arrancó en los 15 min siguientes). `:shared:testAndroidHostTest` 79/79.
+  - **Comportamiento del cliente que iOS tiene que copiar al implementar guardias:** alta con
+    `inicioMs` y `asignacionId`; nace `programada` si el inicio es futuro, sin timers; a su
+    hora llama a `activar_guardia_en_jornada` (servidor primero; sin red activa local y
+    reintenta) y adopta `inicio`/`inicio_ms`/`status_actual` de la respuesta; si hay un viaje
+    en curso o por arrancar queda "no iniciada" y **no se reintenta sola** (el chofer la inicia
+    a mano y se paga desde ese momento); `cancelar_guardia` se busca por `guardiaId` o
+    `asignacionId` y vale para programada o en curso; una programada bloquea el cierre manual
+    de la jornada y frena el automático; el timer de la guardia y el de la jornada cuentan
+    desde el inicio de la guardia; al terminar una guardia o un viaje se vuelve a armar la
+    revisión de cierre de la jornada; 409 `GUARDIA_VIVA_EXISTENTE` en el alta → reenviar el
+    cierre de las guardias ya terminadas y reintentar una vez; 409 `ASIGNACION_ANULADA` →
+    borrar la guardia local.
+  **Para iOS (Mac):** tests de `:shared` en los targets iOS y regenerar el `.xcframework`.
+- 10/10 (panel `cot-admin-next`, rama `feat/guardia-programada-paso5`, SIN mergear ni deployar) —
+  **Guardia programada, paso 5: lo que el panel manda y espera.**
+  - Mensaje `guardia`: `data.guardia = {horaInicio, tipo, inicioMs}`. `inicioMs` = día elegido
+    (Hoy/Mañana, obligatorio, hora de Montevideo) + hora. No se asigna a "todos".
+  - No asigna si el chofer ya tiene una guardia viva (programada o en curso) en una jornada
+    abierta, **o una asignación de guardia sin leer** (el servidor frena el alta de la guardia,
+    no el mensaje). Una asignación de guardia, leída o no, **no se edita**: anular y reasignar.
+  - Anular: `anular_guardia_panel(p_mensaje_id, p_motivo)` (motivo ≥ 10). Ya no arma el PATCH
+    ni el `cancelar_guardia` del lado del cliente. Anular una en curso está permitido, con
+    aviso de las horas que se pierden.
+  - Editar una en curso: `editar_guardia_en_jornada(p_guardia_id, p_inicio, p_inicio_ms)` con
+    la misma fecha que tenía la guardia; mensaje `editar_guardia` con `{guardiaId, inicio,
+    tipo, inicioMs}`.
+  **Para iOS:** nada que implementar; es el contrato de mensajes que va a recibir.
+
+- 11/10 (Android `main`; servidor en producción) — **Guardia programada, fase B: MIGRACIÓN
+  APLICADA EN PRODUCCIÓN (11/10 12:04) y primera tanda de campo en el Huawei.**
+  - **Servidor:** `20261010010000_guardia_programada_paso2.sql` aplicada (matriz 72/72,
+    regresiones 46/46 y 45/45). Ya rigen en producción las RPC descritas el 10/10
+    (`agregar_guardia_a_jornada` con máximo una guardia viva, `activar_guardia_en_jornada`,
+    `anular_guardia_panel`, `editar_guardia_en_jornada` con `p_inicio_ms`) y la forma nueva
+    de `data.guards[]` (`status: "programada"`, `inicioMs`, `asignacionId`, `activacion`,
+    `anulacion`). El rollback ya no es limpio: el Huawei tiene el APK de la fase B.
+  - **Panel:** el de producción sigue siendo el viejo; el del paso 5 (rama
+    `feat/guardia-programada-paso5`) se usó en local y falta mergear y deployar.
+  - **Campo (Android):** 24 casos del paso 6 cerrados; quedan casos y el cierre del frente
+    (detalle en `Estado_actual.md` del repo Android).
+  - **Reglas de negocio validadas por Claudio (no cambian el código):** viático por franjas
+    14:00 y 23:00 con 3 h 30 desde el inicio y respaldo de 9 h trabajadas; tome y cese
+    42,5 km una vez por jornada, sin cese aparte; todos los viajes llevan tome salvo
+    PASAJERO; el semidirecto es un viaje común y lleva tome; un "movimiento" y un contratado
+    corto se cargan como guardia especial por hora.
+  - **Hallazgos que tocan a los dos clientes (en la cola de Android, sin arreglar):**
+    (a) **el panel manda `tipoServicio: "SEMI"` y `LaudoCalculator` (`:shared`) espera
+    "SEMIDIRECTO"**: un semidirecto asignado desde el panel queda sin tome y cese; como el
+    cálculo es de `:shared`, le pasa igual a iOS (por código, falta la prueba). (b) Una
+    guardia asignada "para mañana" cae en la jornada del día en que el cliente recibe el
+    mensaje, no en la de `inicioMs`: frena el cierre de esa jornada o choca con 409
+    `JORNADA_CERRADA`. (c) En Android el corte de guardia 15 min antes de un viaje solo se
+    programa en el sync, y el cierre automático de jornada puede correr a menos de 1 h de la
+    última actividad (timer con `KEEP`).
+  **Para iOS:** nada que implementar ahora. Al implementar guardias y el cierre de jornada, no
+  copiar (b) ni (c) tal cual; y no "arreglar" (a) solo de un lado: se decide si se corrige en
+  el panel o en `:shared`.
+
+- **12/10/2026 — Guardia programada, fase B: segunda tanda de campo (Android). Sin cambios de
+  código, RPC ni forma de `data`.**
+  - **Bug SEMI vs SEMIDIRECTO confirmado en campo** (antes solo por código): un viaje con
+    `tipoServicio: "SEMI"` asignado desde el panel cerró con `kmTomeCese` 0 en el snapshot,
+    en el celu y en el servidor (jornada `9999999-20261012`; la del 11/10, TURNO, 42.5).
+    Sigue sin arreglar y sin decidir si se corrige en el panel o en `:shared`.
+  - **Constante:** el viático vale $455,26 (`MONTO_VIATICO` en `LaudoCalculator` de
+    `:shared`), no $455 como decía la documentación. El código no cambió.
+  - **Panel:** el de producción no anula guardias programadas ("Solo se pueden anular
+    guardias en curso"); eso llega con el merge + deploy de `feat/guardia-programada-paso5`.
+  - **Hallazgos de Android (en su cola, sin arreglar):** (a) al finalizar un viaje a mano,
+    lo que sigue a la llamada al servidor (rearmar la revisión de cierre, parar el GPS)
+    corre en el scope de la pantalla y puede no correr; el servicio de GPS queda vivo y,
+    por código, puede volver a finalizar un viaje ya cerrado porque el `UPDATE` local no
+    filtra por estado. (b) El reintento sin red de la activación automática de una guardia
+    llama `activar_guardia_en_jornada` con `p_inicio_ms`, y la RPC trata eso como inicio
+    manual ("se paga desde ese momento").
+  **Para iOS:** nada que implementar ahora. Al implementar: finalizar un viaje o una guardia
+  no puede depender de que la pantalla siga viva, y el cierre local tiene que filtrar por
+  `en_curso`; en una activación automática (con o sin reintento) no mandar `p_inicio_ms`,
+  solo en "Iniciar guardia" a mano.
