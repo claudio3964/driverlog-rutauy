@@ -22,6 +22,10 @@ final class LoginViewModel {
     // `intentosRestantes` que el DTO ya le da -- queda anotado para corregir ahí también.
     var intentosRestantes: Int32? = nil
     var mostrarPlaceholderEnrolamiento: Bool = false
+    // Legajo de la sesión activa, ya canónico. Fuente: `SesionChoferDto.legajo` (el que devuelve
+    // el servidor, dueño.legajo de `choferes`); mientras login-chofer no lo mande (null), cae al
+    // que se envió, ya normalizado -- mismo criterio que documenta el DTO en :shared.
+    private(set) var legajoSesion: String? = nil
 
     // Todavía no existe una implementación real de ChoferAuthApi (ver PANORAMA.md, pendiente de
     // :app) -- se usa el Fake siempre por ahora. Cuando exista la real, este `let` pasa a
@@ -34,9 +38,17 @@ final class LoginViewModel {
         self.deviceIdStore = deviceIdStore
     }
 
+    // Forma canónica del legajo: trim + mayúsculas. Mismo que `normalizarLegajo` de
+    // ViajeRepositoy.kt (`legajo.trim().uppercase()`) -- lo tipeado se normaliza antes de
+    // mandarlo para que un "abc1" no caiga en la rama device_legajo_mismatch de login-chofer y
+    // cuente contra el umbral de bloqueo.
+    private var legajoCanonico: String {
+        legajo.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
     // Mismo criterio que el botón de LoginScreen.kt: `legajo.isNotBlank() && pin.length == 6 && !verificando`.
     var puedeIngresar: Bool {
-        !legajo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && pin.count == 6 && !verificando
+        !legajoCanonico.isEmpty && pin.count == 6 && !verificando
     }
 
     // Mismo que LoginScreen.kt: `onValueChange = { legajo = it; errorMsg = null }`.
@@ -73,15 +85,16 @@ final class LoginViewModel {
         intentosRestantes = nil
         defer { verificando = false }
 
-        let legajoLimpio = legajo.trimmingCharacters(in: .whitespacesAndNewlines)
+        let legajoEnviado = legajoCanonico
         do {
             let resultado = try await fakeApi.loginChofer(
-                legajo: legajoLimpio,
+                legajo: legajoEnviado,
                 deviceId: deviceIdStore.deviceId,
                 pin: pin
             )
             switch onEnum(of: resultado) {
-            case .ok:
+            case .ok(let ok):
+                legajoSesion = ok.sesion.legajo ?? legajoEnviado
                 return true
             case .pinNoConfigurado(_):
                 // Android navega a la pantalla real de activación (onIrAActivacion) -- todavía
