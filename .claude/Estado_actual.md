@@ -12,6 +12,11 @@
   `.claude/PANORAMA.md` (entradas 30/09: fase 0 tanda 2 -- RPC de jornada/mensajes exigen
   `X-Chofer-Token`; y 01/10: trigger de `travels` en prod + no replicar el patrón de activación
   de Android). Leer esas dos entradas antes de tocar activación de viajes o mensajes en iOS.
+  **Sigue vigente al 13/10:** tras un `git fetch`, `origin/main` (`4aedff5`) tiene 18 commits
+  que `main` local no tiene — entradas de `PANORAMA.md` del 04/10 al 12/10 (legajo canónico en
+  servidor + Android, `TransicionesViaje`, anular asignación, guardia programada, bug SEMI) y
+  un cambio al paso 6 del protocolo de cierre. No se hizo `pull` ni se leyeron en la sesión
+  del 13/10: lo que este archivo dice sobre el lado servidor puede estar viejo.
 - **Un frente a la vez, hasta cerrarlo.** Todo hallazgo nuevo se anota en la cola (1-2 líneas:
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
@@ -107,9 +112,6 @@ Tests de `:shared` en `iosSimulatorArm64`: 84 OK, incluido `LaudoTipoSemiTest` (
 - **Tipos de servicio en Swift:** no hay ninguna lista ni comparación literal — la lista y el
   alias viven solo en `:shared`.
 
-**Sin verificar en esta sesión:** el pendiente del 03/09 sobre pantallas hechas con otra IA
-que no estaban subidas al repo. Preguntarle a Claudio si sigue vigente.
-
 **Entorno de esta Mac:** no hay Java en el PATH ni Android Studio; para Gradle se usó
 `JAVA_HOME=~/Developer/jdk/jdk-21.0.12.1+1/Contents/Home`.
 
@@ -117,8 +119,9 @@ que no estaban subidas al repo. Preguntarle a Claudio si sigue vigente.
 
 ## PRÓXIMOS PASOS
 
-1. Decidir qué se hace con `feat/ios-legajo-dashboard` (push / PR / merge a `main`) — hoy
-   existe solo en esta Mac.
+1. Decidir qué se hace con `feat/ios-legajo-dashboard` (PR / merge a `main`) — pusheada a
+   `origin` el 13/10. Salió de `main` local en `936dbe0`, que estaba 18 commits detrás de
+   `origin/main` (ver aviso al principio); el merge de prueba no da conflictos.
 2. Cerrar el frente actual: jornada real en el Dashboard en vez de `jornadaDeMuestra`. Antes,
    confirmar contra `.claude/PANORAMA.md` de dónde sale esa jornada (regla de secuencia:
    primero `:shared`).
