@@ -42,6 +42,14 @@
     teclado, no normaliza el valor real, es paliativo de UX.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
+  - **Para cuando se conecte `NuevoViajeView` (no se hace ahora):** reemplazar el toggle
+    `esViajeDirecto` (`driverlog/Views/NuevoViajeView.swift:15` y `:62`) por la lista de tipos
+    de servicio, idealmente expuesta desde `:shared` para que las dos plataformas usen la
+    misma — Android hoy la tiene propia (`TIPOS_SERVICIO`, `NuevoViajeScreen.kt:97`). Igual
+    con las ciudades: los pickers de origen/destino (`NuevoViajeView.swift:29-41`) tienen
+    4 hardcodeadas, Android tiene su propia `BASES` (`NuevoViajeScreen.kt:92`). Gravedad:
+    baja hoy (la pantalla solo hace `print`), bloqueante para conectarla — un booleano no
+    alcanza para que `LaudoCalculator` decida tome y cese / acoplado.
 
 ---
 
