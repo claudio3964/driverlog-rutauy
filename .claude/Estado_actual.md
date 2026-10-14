@@ -4,7 +4,7 @@
 > sesión en la Mac. Se REESCRIBE en cada cierre de jornada de trabajo (ver PROTOCOLO al pie).
 > Lo que deja de ser cierto se borra de "Dónde estoy parado hoy", no se acumula.
 >
-> **Última actualización:** 29/09/2026
+> **Última actualización:** 13/10/2026
 
 ## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
 
@@ -16,9 +16,12 @@
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
   (Texto completo en `CLAUDE.md`, sección Reglas.)
-- **Frente actual:** conectar `DashboardView` a `LaudoCalculator` de `sharedKit` (hoy usa
-  `kmTotales = 220.0` y `montoTotal = 1762.68` hardcodeados, copiados de la prueba de
-  `ContentView`) y formatear el monto a 2 decimales.
+- **Frente actual:** conectar `DashboardView` a `LaudoCalculator` de `sharedKit` — **a medias
+  (13/10).** Hecho: "KM Totales", "Monto Est." y el "Acumulado" del banner salen de
+  `LaudoCalculator.shared.calcular(...)` y el monto se muestra a 2 decimales. Falta para
+  cerrarlo: que la jornada de entrada sea real (hoy es `DashboardView.jornadaDeMuestra`, un
+  `sharedKit.JornadaCompleta` fijo armado en Swift) y que el banner "EN CURSO" y la lista
+  `eventos` dejen de estar hardcodeados.
 - **Cola:**
   - **FRENTE NUEVO, PRIORITARIO — para la próxima sesión en el PC Windows — normalizar
     `legajo` a mayúsculas (decidido 03/10, diagnóstico ya corrido en el repo Android).**
@@ -36,10 +39,13 @@
     ya están todos canónicos); las Edge Functions normalizan con
     `trim().toUpperCase()`; el alta del panel (`cot-admin-next`) manda el legajo ya en
     mayúsculas. Implementación pendiente (migración + Edge Functions + panel) — ver
-    detalle en la cola de `Estado_actual.md` del repo Android. Mientras tanto, el campo
-    Legajo de `LoginView` (ver `driverlog/Auth/`) tiene autocorrección desactivada y
-    `.textInputAutocapitalization(.characters)` — solo sugiere mayúsculas en el
-    teclado, no normaliza el valor real, es paliativo de UX.
+    detalle en la cola de `Estado_actual.md` del repo Android. **Lado iOS: hecho el 13/10**
+    — `LoginViewModel` manda el legajo canónico (trim + mayúsculas, mismo criterio que
+    `normalizarLegajo` de `ViajeRepositoy.kt`) y guarda como legajo de sesión
+    `SesionChoferDto.legajo`, con fallback al enviado mientras `login-chofer` lo devuelva
+    null. El campo de `LoginView` sigue mostrando lo tipeado tal cual (con
+    `.textInputAutocapitalization(.characters)` como sugerencia de teclado); la
+    normalización se aplica al enviar. Sigue pendiente todo el lado servidor y panel.
   - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
     `com.driverlog.app.ios` antes de firmar para un iPhone real.
   - **Para cuando se conecte `NuevoViajeView` (no se hace ahora):** reemplazar el toggle
@@ -50,6 +56,15 @@
     4 hardcodeadas, Android tiene su propia `BASES` (`NuevoViajeScreen.kt:92`). Gravedad:
     baja hoy (la pantalla solo hace `print`), bloqueante para conectarla — un booleano no
     alcanza para que `LaudoCalculator` decida tome y cese / acoplado.
+  - **Prioridad media — exponer laudo y viático desde `:shared`** (constantes públicas, o
+    que los defaults de `calcular()` lleguen a Swift) y sacar `8.0122` / `455.26` de
+    `DashboardView.calcularTotales` y de `ContentView.probarCalculator`. Hoy `LAUDO_KM` y
+    `MONTO_VIATICO` son `private` en `LaudoCalculator.kt` y el header ObjC solo exporta
+    `calcular(jornada:laudoKm:montoViatico:)`, así que Swift duplica los dos valores. Se hace
+    junto con el próximo cambio en `:shared`.
+  - `LoginViewModel.legajoSesion` todavía no lo lee nadie: `jornadaDeMuestra` va con
+    `legajo: ""` y `ContentView.swift:77` con `"4112"` hardcodeado. Gravedad: baja, se
+    resuelve al conectar la jornada real.
 
 ---
 
@@ -61,8 +76,9 @@
   Android — hoy expone al menos `LaudoCalculator`, más lo que se vaya portando ahí).
 - **Fase:** exploratoria / puente. Views existentes en `driverlog/Views/`: `MainTabView`,
   `DashboardView`, `HistorialView`, `GuardiasListView`, `ViajesListView`, `NuevaGuardiaView`,
-  `NuevoViajeView`, `DeviceApprovalView`. No confirmado todavía cuáles están conectadas a
-  datos reales de Supabase vs. son solo UI — verificar al retomar.
+  `NuevoViajeView`, `DeviceApprovalView`. Al 13/10 ninguna lee datos reales: no hay llamadas a
+  Supabase ni uso de SwiftData (`@Query` / `modelContext`) en ningún `.swift`. El login
+  (`driverlog/Auth/`) usa `FakeChoferAuthApi` de `:shared`; `NuevoViajeView` solo hace `print`.
 - **29/09/2026 — primer build real y primera ejecución en simulador OK.** Puente
   Swift↔`sharedKit` validado en ejecución (no solo compilación): `LaudoCalculator` devolvió
   220 km × 8,0122 = 1762,684.
@@ -77,29 +93,48 @@
 
 ## DÓNDE ESTOY PARADO HOY
 
-**03/09/2026 — puente Kotlin↔Swift confirmado funcionando.** `ContentView.swift` tiene un
-POC (botón "Probar LaudoCalculator") que instancia `sharedKit.Viaje` / `sharedKit.JornadaCompleta`
-y llama a `LaudoCalculator.calcular()` real, con el mapeo de nulables ya resuelto (`Long?` →
-`KotlinLong`, etc.) — confirma que el `.xcframework` generado del lado Android se consume bien
-desde Swift. Esto se hizo trabajando con otra IA (más lento y laborioso que con Claude Code).
-Este `Estado_actual.md` y el `CLAUDE.md` del repo son la primera vez que este lado tiene ese
-soporte — no hay sesiones previas de Claude Code acá, así que no hay CHANGELOG todavía.
+**13/10/2026 — rama local `feat/ios-legajo-dashboard` (desde `main`), sin push.** Compilado
+contra el `sharedKit.xcframework` regenerado desde `app-kilometros-completa` en
+`fix/semi-alias` (`ac1f215`), que trae el alias `SEMI` → `SEMIDIRECTO` en `LaudoCalculator`.
+Tests de `:shared` en `iosSimulatorArm64`: 84 OK, incluido `LaudoTipoSemiTest` (6 casos).
 
-**Pendiente inmediato:** hay pantallas nuevas hechas con la otra IA que todavía NO están
-subidas a este repo. El usuario quiere que se revisen (misma línea de trabajo que el resto del
-proyecto) antes de pushearlas. Al retomar la sesión en la Mac, pedir ese código si no llegó por
-otra vía (chat, rama aparte, etc. — ver conversación de la sesión Windows del 03/09).
+- **Login:** legajo canónico al enviar y `SesionChoferDto.legajo` como fuente de la sesión
+  (`52b0fcf`). La sesión sigue solo en memoria y contra `FakeChoferAuthApi`.
+- **Dashboard:** totales desde `LaudoCalculator` (`ff38f9c`), con la jornada de muestra en
+  `tipoServicio: "SEMI"` (decisión de Claudio, 13/10). Muestra **262.5 km / $2103.20**
+  (220 de viaje + 42,5 de tome y cese; 0 viáticos por ser un viaje en curso). Verificado
+  ejecutando el código de `DashboardView` en el simulador, no recorriendo la pantalla a mano.
+- **Tipos de servicio en Swift:** no hay ninguna lista ni comparación literal — la lista y el
+  alias viven solo en `:shared`.
+
+**Sin verificar en esta sesión:** el pendiente del 03/09 sobre pantallas hechas con otra IA
+que no estaban subidas al repo. Preguntarle a Claudio si sigue vigente.
+
+**Entorno de esta Mac:** no hay Java en el PATH ni Android Studio; para Gradle se usó
+`JAVA_HOME=~/Developer/jdk/jdk-21.0.12.1+1/Contents/Home`.
 
 ---
 
 ## PRÓXIMOS PASOS
 
-1. Recibir y revisar las pantallas nuevas pendientes de subir (ver arriba) antes de pushearlas.
-2. Confirmar contra `.claude/PANORAMA.md` si ya corresponde avanzar UI real conectada a
-   `:shared`, o si sigue siendo prioridad portar más superficie a `:shared` primero (regla de
-   secuencia del PANORAMA).
-3. Si se conecta una pantalla real a un tipo de `:shared`, seguir la convención de commit
-   detallado del `CLAUDE.md` de este repo (qué tipo se consumió, mapeos no triviales).
+1. Decidir qué se hace con `feat/ios-legajo-dashboard` (push / PR / merge a `main`) — hoy
+   existe solo en esta Mac.
+2. Cerrar el frente actual: jornada real en el Dashboard en vez de `jornadaDeMuestra`. Antes,
+   confirmar contra `.claude/PANORAMA.md` de dónde sale esa jornada (regla de secuencia:
+   primero `:shared`).
+3. Con el próximo cambio en `:shared`: exponer laudo y viático (ver cola) y regenerar el
+   xcframework.
+4. Si se conecta otra pantalla a un tipo de `:shared`, seguir la convención de commit
+   detallado del `CLAUDE.md` de este repo.
+
+---
+
+## CHANGELOG
+
+- **13/10/2026** — Legajo canónico en el login de iOS (`52b0fcf`); totales del Dashboard
+  desde `LaudoCalculator` de `sharedKit` (`ff38f9c`); cola: tipos de servicio y ciudades de
+  `NuevoViajeView` desde `:shared` (`3abb003`), laudo y viático desde `:shared`. Detalle de
+  mapeos y cifras en el cuerpo de `ff38f9c`.
 
 ---
 
