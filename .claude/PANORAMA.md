@@ -703,3 +703,21 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   no puede depender de que la pantalla siga viva, y el cierre local tiene que filtrar por
   `en_curso`; en una activación automática (con o sin reintento) no mandar `p_inicio_ms`,
   solo en "Iniciar guardia" a mano.
+
+- **12/10/2026 (noche) — Bug SEMI vs SEMIDIRECTO: arreglado en `:shared` (commit `04ea909`
+  del repo Android). Pendiente de verificar en campo.** *(Propagada el 13/10: el commit está
+  en `origin/fix/semi-alias` del repo Android (`ac1f215`), todavía NO en `origin/main`, que
+  espera la prueba de campo de Claudio.)*
+  - **Decisión:** se corrige en `:shared`, no en el panel. `LaudoCalculator.ameritaTomeCese`
+    trata `tipoServicio: "SEMI"` como "SEMIDIRECTO" (alias, después de uppercase + trim) y
+    ahora es pública. Vale para los km de tome y cese y para el adelanto de 45 min del
+    viático. Sin cambios de RPC ni de forma de `data`; el panel sigue mandando "SEMI".
+  - **No recalcula snapshots cerrados:** una jornada cerrada con el bug conserva su total.
+  - **Android:** `PdfGenerator` ya no tiene lista propia de tipos con tome y cese; usa
+    `ameritaTomeCese`.
+  **Para iOS (este repo):** regenerar `sharedKit.xcframework` cuando el commit esté en
+  `origin/main` del repo Android (o antes, parado en `fix/semi-alias`, si se quiere probar
+  el arreglo); el cálculo queda corregido sin tocar Swift. Si alguna pantalla o el PDF de
+  iOS decide qué viaje lleva tome y cese, que llame a `LaudoCalculator.ameritaTomeCese` y no
+  compare el tipo contra una lista propia. **Para el panel:** nada obligatorio; si algún día
+  pasa a mandar "SEMIDIRECTO", los dos valores dan lo mismo.
