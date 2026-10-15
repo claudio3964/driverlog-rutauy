@@ -741,3 +741,16 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   Android: el SEMI queda corregido sin tocar Swift. Al implementar la recepción de mensajes
   del panel, contemplar la edición de un viaje (tipo, hora, coche) y reprogramar lo que
   dependa de la hora; no copiar el hueco de Android.
+
+- **15/10/2026 (Mac) — Legajo canónico implementado también en iOS (este repo).**
+  Cierra el "falta iOS" de la entrada del 04/10 (esa entrada no se edita; esta la supera).
+  `driverlog/Auth/LoginViewModel.swift` (commit `52b0fcf` del repo iOS, rama
+  `feat/ios-legajo-dashboard`): el legajo se normaliza antes de mandarlo
+  (`trimmingCharacters(in: .whitespacesAndNewlines).uppercased()`) y la sesión toma el legajo
+  que devuelve el servidor (`SesionChoferDto.legajo ?? enviadoNormalizado`), mismo criterio
+  que Android (`daadda9`). El paliativo `.textInputAutocapitalization(.characters)` queda como
+  UX. **Sin probar contra el servidor real:** el login de iOS sigue contra
+  `FakeChoferAuthApi` y la sesión solo en memoria; la prueba real llega con el frente de auth
+  real (`ChoferAuthApi` con Ktor en `:shared`). Sin cambios de RPC, Edge Functions ni `:shared`.
+  **Para Android:** nada que hacer; el frente del legajo queda cerrado en servidor, Android e
+  iOS.
