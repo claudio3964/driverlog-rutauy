@@ -47,6 +47,10 @@
     (tipo, hora, coche) y reprogramar lo que dependa de la hora (activación, GPS). Android
     tiene ese hueco (`MensajesPollingWorker` no tiene rama para editar un viaje) — **no
     copiarlo** (ver PANORAMA 13/10 noche).
+  - **Para el frente "jornada real": formato de números consistente en el Dashboard.** Hoy la
+    lista de eventos usa punto ("42.5 km", texto fijo en `eventos`) y el resumen usa coma
+    ("262,5", `Text` con `specifier`, que formatea con el locale). Gravedad: baja, cosmética;
+    se resuelve al armar `eventos` desde la jornada real con un único formateador.
   - `LoginViewModel.legajoSesion` todavía no lo lee nadie: `jornadaDeMuestra` va con
     `legajo: ""` y `ContentView.swift:77` con `"4112"` hardcodeado. Gravedad: baja, se
     resuelve al conectar la jornada real.
