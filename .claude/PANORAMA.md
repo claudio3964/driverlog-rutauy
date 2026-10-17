@@ -754,3 +754,31 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   real (`ChoferAuthApi` con Ktor en `:shared`). Sin cambios de RPC, Edge Functions ni `:shared`.
   **Para Android:** nada que hacer; el frente del legajo queda cerrado en servidor, Android e
   iOS.
+
+- **17/10/2026 (Mac) — Cola de Android: 4 hallazgos del flujo de auth (sin código tocado).**
+  Relevados leyendo el código de `:app` contra `activar-chofer`/`login-chofer` (al armar el
+  contrato de auth para iOS). **Ninguno se tocó**: van a la cola de Android, sin gravedad alta
+  (ninguno rompe un login correcto).
+  1. **Activación, 400 → siempre "PIN inválido".** `SupabaseService.activarChofer`
+     (`SupabaseService.kt:693`) mapea cualquier 400 a `PinInvalido(error)`. El servidor
+     devuelve 400 con `code: "PIN_INVALIDO"` (PIN trivial, el código no se consume) **y**
+     400 sin `code` por campos faltantes o largos (`activar-chofer/index.ts:99/105`); en el
+     segundo caso el chofer ve "legajo, codigo, device_id y pin son requeridos (string)" como
+     si fuera un problema del PIN. Mapear por `code`, no por status.
+  2. **Activación, 500 → "Código o legajo inválidos, o ya activado".** El `else` de
+     `SupabaseService.kt:694` junta el 401 genérico con el 500 ("Error activando la cuenta" /
+     "Error interno"), y `ActivacionScreen.kt:133` le dice al chofer que su código es inválido
+     cuando el problema es del servidor; puede pedir un código nuevo sin necesidad.
+  3. **Código de enrolamiento con guiones no entra.** `ActivacionScreen.kt:66` corta el campo
+     a 8 caracteres y `formularioValido` (`:38`) exige exactamente 8, así que "ABCD-EFGH"
+     (9) no se puede escribir. El servidor sí lo acepta: pasa a mayúsculas y saca todo lo que
+     no sea alfanumérico antes de validar (`activar-chofer/index.ts:113`).
+  4. **Cerrar sesión no revoca la sesión en el servidor.** `onCerrarSesion`
+     (`MainActivity.kt:89-94`) borra legajo, device_id y tokens locales; la fila de
+     `chofer_sesiones` queda viva hasta su `expires_at` (`refresh_ttl_dias` de la config de la empresa; 90 días por defecto, `_shared/config.ts:17`) y el
+     refresh token sigue sirviendo si alguien lo tiene. No hay endpoint para revocar desde
+     el cliente: hace falta uno (Edge Function o RPC con `X-Chofer-Token`) antes de poder
+     corregirlo; afecta a los dos clientes.
+  **Para iOS (este repo):** el contrato de `:shared` mapea por `code` y separa `ErrorServidor`
+  (puntos 1 y 2); al hacer la pantalla de activación en iOS, aceptar guiones en el código
+  (punto 3); el punto 4 queda abierto también para iOS hasta que exista el endpoint.
