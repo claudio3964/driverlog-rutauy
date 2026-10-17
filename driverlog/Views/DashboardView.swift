@@ -12,8 +12,10 @@ struct EventoJornada: Identifiable {
 struct DashboardView: View {
     @State private var jornadaColgada: Bool = false
     @State private var eventoEnCurso: String? = "Viaje"
-    @State private var kmTotales: Double = 220.0
-    @State private var montoTotal: Double = 1762.68
+    // Totales de la jornada: salen de `LaudoCalculator` de `sharedKit`, no se calculan ni se
+    // hardcodean en Swift. La jornada de entrada todavía es fija (`jornadaDeMuestra`) porque el
+    // Dashboard no lee SwiftData/Supabase -- cuando lea, solo cambia el argumento de `calcular`.
+    @State private var totales = DashboardView.calcularTotales(de: DashboardView.jornadaDeMuestra)
     
     // Lista de eventos de la jornada
     @State private var eventos: [EventoJornada] = [
@@ -89,7 +91,7 @@ struct DashboardView: View {
                                 Text("Acumulado")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
-                                Text("$\(montoTotal, specifier: "%.2f")")
+                                Text("$\(totales.monto, specifier: "%.2f")")
                                     .font(.callout)
                                     .bold()
                                     .foregroundColor(.green)
@@ -118,7 +120,7 @@ struct DashboardView: View {
                                 Text("KM Totales")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Text("\(kmTotales, specifier: "%.1f") km")
+                                Text("\(totales.kmTotal, specifier: "%.1f") km")
                                     .font(.title2)
                                     .bold()
                             }
@@ -127,7 +129,7 @@ struct DashboardView: View {
                                 Text("Monto Est.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Text("$\(montoTotal, specifier: "%.2f")")
+                                Text("$\(totales.monto, specifier: "%.2f")")
                                     .font(.title2)
                                     .bold()
                                     .foregroundColor(.blue)
@@ -229,6 +231,66 @@ struct DashboardView: View {
                     }
                 }
             }
+
+// MARK: - Puente a LaudoCalculator (sharedKit)
+
+extension DashboardView {
+    // `calcular` tiene defaults en Kotlin (`LAUDO_KM`, `MONTO_VIATICO`), pero el header ObjC de
+    // `sharedKit` no los exporta y las constantes son `private` -- hay que pasarlos. Mismos
+    // valores que usa la prueba de `ContentView`.
+    static func calcularTotales(de jornada: sharedKit.JornadaCompleta) -> sharedKit.LaudoCalculator.Totales {
+        sharedKit.LaudoCalculator.shared.calcular(jornada: jornada, laudoKm: 8.0122, montoViatico: 455.26)
+    }
+
+    // Misma jornada que muestran el banner y el detalle de arriba: un viaje MVD -> COL en curso,
+    // coche 104, 08:00 (2026-07-30T08:00:00Z, mismo timestamp que la prueba de `ContentView`).
+    // `tipoServicio: "SEMI"` es como el panel guarda el semidirecto -- `LaudoCalculator` lo
+    // resuelve a SEMIDIRECTO y suma el tome y cese.
+    static var jornadaDeMuestra: sharedKit.JornadaCompleta {
+        let inicio: Int64 = 1785398400000
+        let viaje = sharedKit.Viaje(
+            id: "MUESTRA-001",
+            orderNumber: "MUESTRA-20260730",
+            origen: "Montevideo",
+            destino: "Colonia",
+            departureTime: "08:00",
+            arrivalTime: "",
+            status: "en_curso",
+            inicioProgramado: inicio,
+            inicioReal: KotlinLong(value: inicio),
+            finReal: nil,
+            kmEmpresa: 220,
+            kmAuto: 0,
+            turno: "",
+            tipoServicio: "SEMI",
+            acoplado: false,
+            acopladoKm: 0,
+            coche: "104",
+            tomeCese: false,
+            syncStatus: "local",
+            asignadoPorAdmin: false,
+            notificado: false,
+            duracionMinutos: nil,
+            llegadaReal: nil,
+            llegadaEstimada: nil,
+            origenCreacion: "app",
+            cierreAutomatico: nil
+        )
+        return sharedKit.JornadaCompleta(
+            orderNumber: "MUESTRA-20260730",
+            fecha: "2026-07-30",
+            legajo: "",
+            baseInicio: "Montevideo",
+            travels: [viaje],
+            guards: [],
+            closed: false,
+            tomeCeseGenerado: false,
+            createdAt: inicio,
+            closedAt: nil,
+            totalsSnapshot: nil
+        )
+    }
+}
 
             #Preview {
                 DashboardView()
