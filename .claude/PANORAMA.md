@@ -782,3 +782,33 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (este repo):** el contrato de `:shared` mapea por `code` y separa `ErrorServidor`
   (puntos 1 y 2); al hacer la pantalla de activación en iOS, aceptar guiones en el código
   (punto 3); el punto 4 queda abierto también para iOS hasta que exista el endpoint.
+
+- **17/10/2026 (Mac) — `:shared`: auth real, contrato + `KtorChoferAuthApi` (para iOS).**
+  Todo en `shared/.../data/auth/`, rama `feat/shared-auth-contrato` del repo Android
+  (`42415af`, `132cf32`, `0bebc4b`), **sin mergear a `main`**. No se llamó a ningún endpoint.
+  - **Mapeo puro** `mapearLogin/mapearActivar/mapearRefresh(status, body)`: primero `code`,
+    después status. Login 400 → `CredencialesInvalidas()` sin contador; activar 400 sin `code`
+    → `CredencialesInvalidas` (no `PinInvalido`); `PinInvalido.motivo` sin el prefijo
+    "PIN invalido: "; no previsto (404, 429, 5xx, 200 ilegible) → `ErrorServidor`.
+    `PIN_ALREADY_SET` no existe (activar responde el 401 genérico si ya hay PIN).
+  - **`SesionChoferDto`:** `nombre/base/tipo` pasan a `String? = null` (el decode ya no falla
+    con perfil NULL en `choferes`).
+  - **`SesionStore` (interfaz) + `SesionChofer`** = sesión completa en un registro: tokens,
+    `expiraAtMs`, `refreshExpiraAtMs` (de `refresh_expires_at`), `legajo` canónico y perfil.
+    `conAccessToken` solo cambia access + vencimiento (el refresh no rota).
+  - **`KtorChoferAuthApi` + `SupabaseConfig(url, publishableKey)`**, Ktor **2.3.12**:
+    `ktor-client-core` como `api` en `commonMain`, `ktor-client-darwin` en `iosMain`;
+    **`androidMain` sin motor** (`:app` sigue con OkHttp, criterio del 19/08). Coroutines
+    sigue en 1.7.3.
+  - Tests en Mac (`iosSimulatorArm64Test`): 125/125 (`ChoferAuthMapeoTest` 29,
+    `KtorChoferAuthApiTest` 12 con MockEngine, `ChoferAuthDecodingTest` 20).
+  - **iOS** (`driverlog`, `feat/ios-auth-real`): bundle id `com.driverlog.app.ios` (antes del
+    primer enrolamiento real: el Keychain, y con él el device_id, está ligado al bundle id);
+    `SupabaseConfig` desde `Config/Info.plist`; `KeychainSesionStore` con la sesión completa
+    en un ítem, que se borra en el primer arranque tras reinstalar (el device_id NO). El login
+    real sigue sin conectar hasta tener un legajo de prueba iOS.
+  **PENDIENTE en Windows antes de mergear `feat/shared-auth-contrato`:**
+  `:shared:testAndroidHostTest` y `:app:assembleDebug` — `ktor-client-core` entra al classpath
+  de `:app` vía `:shared` aunque `:app` no lo use.
+  **Para Android:** sin cambio de comportamiento (`:app` no usa nada de esto); solo el
+  pendiente de arriba.

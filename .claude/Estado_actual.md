@@ -12,21 +12,25 @@
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
   (Texto completo en `CLAUDE.md`, sección Reglas.)
-- **Frente actual:** conectar `DashboardView` a `LaudoCalculator` de `sharedKit` — **alcance
-  cumplido (13/10), espera la confirmación de Claudio para PR / merge de
-  `feat/ios-legajo-dashboard`.** "KM Totales", "Monto Est." y el "Acumulado" del banner salen
-  de `LaudoCalculator.shared.calcular(...)` (monto a 2 decimales).
-  **PLACEHOLDERS INTENCIONALES (no son deuda de este frente, no tocarlos sueltos):**
-  `DashboardView.jornadaDeMuestra` (un `sharedKit.JornadaCompleta` fijo armado en Swift), el
-  banner "EN CURSO" fijo (`eventoEnCurso = "Viaje"`) y la lista `eventos` fija. Se resuelven en
-  el frente **"jornada real"**, que va **después** de la auth real.
-- **Próximo frente: auth real.** Implementar `ChoferAuthApi` en `:shared` con **Ktor** contra
-  Supabase (Edge Functions `login-chofer` / `activar-chofer` / `refresh-chofer`, contrato ya
-  definido el 03/10 en `shared/.../data/auth/`), en lugar de `FakeChoferAuthApi`. Regla de
-  secuencia: primero `:shared`, después el consumo desde iOS.
+- **Frente cerrado (17/10):** `DashboardView` → `LaudoCalculator` de `sharedKit`, mergeado a
+  `main` (PR #1, `2d610f8`). **PLACEHOLDERS INTENCIONALES (no tocarlos sueltos):**
+  `DashboardView.jornadaDeMuestra`, el banner "EN CURSO" fijo (`eventoEnCurso = "Viaje"`) y la
+  lista `eventos` fija. Se resuelven en el frente **"jornada real"**, después de la auth real.
+- **Frente actual: auth real iOS** (rama `feat/ios-auth-real`; `:shared` en
+  `feat/shared-auth-contrato` del repo Android). Hecho al 17/10, **sin ninguna llamada real**:
+  bundle id `com.driverlog.app.ios`; contrato en `:shared` (mapeo puro por `code` y status,
+  perfil nullable, `SesionStore` + `SesionChofer` completa con legajo/perfil/
+  `refreshExpiraAtMs`); `KtorChoferAuthApi` (Ktor 2.3.12, motor Darwin solo en `iosMain`);
+  `SupabaseConfig` desde `Config/Info.plist` (solo URL + publishable key);
+  `KeychainSesionStore` (un ítem, `AfterFirstUnlockThisDeviceOnly`) que se limpia en el primer
+  arranque tras reinstalar (el device_id no se toca). Falta: conectar `LoginViewModel` a
+  `KtorChoferAuthApi` + `KeychainSesionStore` — **bloqueado hasta tener un legajo de prueba
+  iOS**; refresh / `X-Chofer-Token` para `/rest/v1/*` llega con "jornada real".
 - **Cola:**
-  - Bundle id actual `driverlog.driverlog` (`project.pbxproj`, Debug y Release) → cambiar a
-    `com.driverlog.app.ios` antes de firmar para un iPhone real.
+  - **PENDIENTE en Windows, antes de mergear `feat/shared-auth-contrato` (repo Android):**
+    `:shared:testAndroidHostTest` y `:app:assembleDebug`. En la Mac no hay Android SDK; la
+    rama agrega `ktor-client-core` 2.3.12 como `api` en `commonMain`, que entra al classpath
+    de `:app` aunque no lo use. Gravedad: bloquea el merge de esa rama.
   - **Para cuando se conecte `NuevoViajeView` (no se hace ahora):** reemplazar el toggle
     `esViajeDirecto` (`driverlog/Views/NuevoViajeView.swift:15` y `:62`) por la lista de tipos
     de servicio, idealmente expuesta desde `:shared` para que las dos plataformas usen la
