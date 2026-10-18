@@ -4,59 +4,33 @@
 > sesión en la Mac. Se REESCRIBE en cada cierre de jornada de trabajo (ver PROTOCOLO al pie).
 > Lo que deja de ser cierto se borra de "Dónde estoy parado hoy", no se acumula.
 >
-> **Última actualización:** 15/10/2026
+> **Última actualización:** 17/10/2026 (cierre de sesión)
 
 ## REGLA DE TRABAJO (29/09) Y FRENTE ACTUAL
 
 - **Un frente a la vez, hasta cerrarlo.** Todo hallazgo nuevo se anota en la cola (1-2 líneas:
   qué es, dónde, gravedad estimada) y **no se trabaja**, salvo: (1) bloquea el cierre del frente
   actual; (2) daño activo o riesgo inmediato de pérdida. Si hay duda, se le pregunta a Claudio.
-  (Texto completo en `CLAUDE.md`, sección Reglas.)
-- **Frente cerrado (17/10):** `DashboardView` → `LaudoCalculator` de `sharedKit`, mergeado a
-  `main` (PR #1, `2d610f8`). **PLACEHOLDERS INTENCIONALES (no tocarlos sueltos):**
+  (Texto completo en `CLAUDE.md`, sección Reglas; ahí también la regla del 17/10 sobre revertir
+  código temporal de prueba.)
+- **Frente actual: auth real iOS** — rama `feat/ios-auth-real` (este repo) + `:shared` en
+  `feat/shared-auth-contrato` (repo Android). Código completo y validado con el fake; **falta
+  la primera prueba real, BLOQUEADA** (ver "Dónde estoy parado").
+- **Placeholders intencionales del Dashboard (no tocarlos sueltos):**
   `DashboardView.jornadaDeMuestra`, el banner "EN CURSO" fijo (`eventoEnCurso = "Viaje"`) y la
   lista `eventos` fija. Se resuelven en el frente **"jornada real"**, después de la auth real.
-- **Frente actual: auth real iOS** (rama `feat/ios-auth-real`; `:shared` en
-  `feat/shared-auth-contrato` del repo Android). Hecho al 17/10, **sin ninguna llamada real**:
-  bundle id `com.driverlog.app.ios`; contrato en `:shared` (mapeo puro por `code` y status,
-  perfil nullable, `SesionStore` + `SesionChofer` completa con legajo/perfil/
-  `refreshExpiraAtMs`); `KtorChoferAuthApi` (Ktor 2.3.12, motor Darwin solo en `iosMain`);
-  `SupabaseConfig` desde `Config/Info.plist` (solo URL + publishable key);
-  `KeychainSesionStore` (un ítem, `AfterFirstUnlockThisDeviceOnly`) que se limpia en el primer
-  arranque tras reinstalar (el device_id no se toca).
-  **`ActivacionView` validada con el fake (17/10, `82cd237`):** código con guiones (normalizado
-  como `activar-chofer`), PIN + confirmación, activar → login automático → sesión completa en
-  Keychain → app; errores separados (PIN inválido / credenciales genérico / servidor / red);
-  entradas desde "¿Primera vez?" y desde un 409 `PIN_NOT_SET` con el legajo cargado. El login
-  también guarda la sesión en Keychain. Recorrido a mano de Claudio OK en: "¿Primera vez?" con
-  legajo cargado, PIN no configurado → activación, activación OK/OK, credenciales inválidas,
-  OK + login con error de red (vuelve al login con aviso), código de 7 caracteres con el botón
-  apagado. El resto de los escenarios (PIN inválido, error de servidor/red en la activación,
-  PIN distintos) verificado solo por código en el simulador, no a mano.
-  **Legajo de prueba iOS: 9999998** ("TEST IOS BORRAR", Montevideo, efectivo, empresa `cot`;
-  el 9999999 queda para Android y no se toca). Alta y código de enrolamiento hechos por
-  Claudio el 17/10 desde el SQL Editor (`alta_chofer_supervisor` + `generar_codigo_enrolamiento`
-  con claims de su admin), porque el panel no tiene alta ni generación de código. Quedó sin
-  device ni PIN; **el código vence el 20/10 a las 22:08** (si vence o se pierde, otro
-  `generar_codigo_enrolamiento('9999998')` revoca el anterior y da uno nuevo).
-  **API real conectada (17/10, `db8882e`):** `ProveedorAuth` elige Fake o `KtorChoferAuthApi`
-  en login y activación. Default **Fake en el simulador, Real en un iPhone**; toggle Fake/Real
-  en el menú de debug (persistido en UserDefaults; en Release siempre Real). Pasar a Real borra
-  la sesión del Keychain (no el device_id). Verificado en simulador sin llamar a la API.
-  **Ninguna llamada real todavía.**
-  **Próximo paso: primera llamada real, desde el iPhone** — Claudio configura el Team de firma
-  con su Apple ID (DEVELOPMENT_TEAM no se toca desde acá), instala, y activa 9999998 con el
-  código (antes del 20/10 22:08) → login automático → app. Refresh / `X-Chofer-Token` para
-  `/rest/v1/*` llega con "jornada real".
 - **Cola:**
   - **Frente de diseño pendiente: alta y aprobación de choferes desde el panel.** Hoy el panel
     no da de alta choferes ni genera códigos de enrolamiento (el 9999998 se hizo por SQL con
     claims de admin). Ni Android ni el panel tienen definido el flujo (quién da el alta, cómo se
     entrega el código, si hay aprobación). Sesión de diseño propia; no arrancar suelto.
-  - **PENDIENTE en Windows, antes de mergear `feat/shared-auth-contrato` (repo Android):**
-    `:shared:testAndroidHostTest` y `:app:assembleDebug`. En la Mac no hay Android SDK; la
-    rama agrega `ktor-client-core` 2.3.12 como `api` en `commonMain`, que entra al classpath
-    de `:app` aunque no lo use. Gravedad: bloquea el merge de esa rama.
+  - **`ContentView.swift` huérfano:** ninguna vista lo instancia (solo su `#Preview`); era la
+    prueba manual del puente a `sharedKit` del 29/09 y tiene `"4112"` y `8.0122`/`455.26`
+    hardcodeados. Decidir si se borra o se deja como POC documentada. Gravedad: baja.
+  - **Formato de números en el Dashboard (frente "jornada real"):** la lista de eventos usa
+    punto ("42.5 km", texto fijo en `eventos`) y el resumen coma ("262,5", `Text` con
+    `specifier`, que formatea con el locale). Se resuelve al armar `eventos` desde la jornada
+    real con un único formateador. Gravedad: baja, cosmética.
   - **Para cuando se conecte `NuevoViajeView` (no se hace ahora):** reemplazar el toggle
     `esViajeDirecto` (`driverlog/Views/NuevoViajeView.swift:15` y `:62`) por la lista de tipos
     de servicio, idealmente expuesta desde `:shared` para que las dos plataformas usen la
@@ -65,25 +39,19 @@
     4 hardcodeadas, Android tiene su propia `BASES` (`NuevoViajeScreen.kt:92`). Gravedad:
     baja hoy (la pantalla solo hace `print`), bloqueante para conectarla — un booleano no
     alcanza para que `LaudoCalculator` decida tome y cese / acoplado.
-  - **Laudo y viático: NO exponer `8.0122` / `455.26` como constantes en `:shared`** (corrige
-    lo anotado el 13/10). Replicar a Android: leer la tabla `configuracion` de Supabase
-    (`SupabaseService.getConfiguracion()`, claves `precio_km_conductor` y `viatico_comida`) y
-    usar los valores fijos **solo como fallback** si no vienen (`ViajeRepositoy.kt:1381` y
-    `:1753`: `config["precio_km_conductor"] ?: 8.0122`, `config["viatico_comida"] ?: 455.26`).
-    Hoy Swift pasa los dos valores fijos en `DashboardView.calcularTotales` y
-    `ContentView.probarCalculator`. Depende de tener red real (después de la auth real);
-    gravedad: baja mientras la jornada sea de muestra.
+  - **Laudo y viático: NO exponer `8.0122` / `455.26` como constantes en `:shared`.** Replicar
+    a Android: leer la tabla `configuracion` de Supabase (`SupabaseService.getConfiguracion()`,
+    claves `precio_km_conductor` y `viatico_comida`) y usar los valores fijos **solo como
+    fallback** (`ViajeRepositoy.kt:1381` y `:1753`). Hoy Swift pasa los dos valores fijos en
+    `DashboardView.calcularTotales` y `ContentView.probarCalculator`. Depende de red real
+    (frente "jornada real"); gravedad: baja mientras la jornada sea de muestra.
   - **Requisito del frente "jornada real": manejar la edición de un viaje desde el panel**
     (tipo, hora, coche) y reprogramar lo que dependa de la hora (activación, GPS). Android
     tiene ese hueco (`MensajesPollingWorker` no tiene rama para editar un viaje) — **no
     copiarlo** (ver PANORAMA 13/10 noche).
-  - **Para el frente "jornada real": formato de números consistente en el Dashboard.** Hoy la
-    lista de eventos usa punto ("42.5 km", texto fijo en `eventos`) y el resumen usa coma
-    ("262,5", `Text` con `specifier`, que formatea con el locale). Gravedad: baja, cosmética;
-    se resuelve al armar `eventos` desde la jornada real con un único formateador.
-  - `LoginViewModel.legajoSesion` todavía no lo lee nadie: `jornadaDeMuestra` va con
-    `legajo: ""` y `ContentView.swift:77` con `"4112"` hardcodeado. Gravedad: baja, se
-    resuelve al conectar la jornada real.
+  - `LoginViewModel.legajoSesion` todavía no lo lee nadie (la sesión completa ya está en
+    Keychain con el legajo); `jornadaDeMuestra` va con `legajo: ""`. Se resuelve al conectar la
+    jornada real. Gravedad: baja.
 
 ---
 
@@ -92,68 +60,84 @@
 - **Qué es:** app iOS nativa (SwiftUI + SwiftData) para choferes COT, contraparte de la app
   Android real de producción (`app-kilometros-completa`, repo Kotlin).
 - **Stack:** SwiftUI, SwiftData, `sharedKit` (framework KMP generado desde `:shared` del repo
-  Android — hoy expone al menos `LaudoCalculator`, más lo que se vaya portando ahí).
-- **Fase:** exploratoria / puente. Views existentes en `driverlog/Views/`: `MainTabView`,
-  `DashboardView`, `HistorialView`, `GuardiasListView`, `ViajesListView`, `NuevaGuardiaView`,
-  `NuevoViajeView`, `DeviceApprovalView`. Al 13/10 ninguna lee datos reales: no hay llamadas a
-  Supabase ni uso de SwiftData (`@Query` / `modelContext`) en ningún `.swift`. El login
-  (`driverlog/Auth/`) usa `FakeChoferAuthApi` de `:shared`; `NuevoViajeView` solo hace `print`.
+  Android: `LaudoCalculator`, `SolapamientoValidator`, contrato de auth del chofer con
+  `KtorChoferAuthApi`, más lo que se vaya portando).
+- **Fase:** exploratoria / puente. Bundle id `com.driverlog.app.ios` (desde el 17/10).
+  - `driverlog/Auth/`: `LoginView`/`LoginViewModel`, `ActivacionView`/`ActivacionViewModel`,
+    `ProveedorAuth` (Fake/Real), `KeychainSesionStore`, `DeviceIdStore`, `SesionLogin`,
+    `NormalizacionAuth`, `SupabaseConfig+InfoPlist`. Config en `Config/Info.plist` (URL +
+    publishable key; fuera de `driverlog/` porque es un grupo sincronizado).
+  - `driverlog/Views/`: `MainTabView`, `DashboardView` (totales desde `LaudoCalculator`, jornada
+    de muestra), `HistorialView`, `GuardiasListView`, `ViajesListView`, `NuevaGuardiaView`,
+    `NuevoViajeView` (solo `print`), `DeviceApprovalView` (sin usar). Ninguna lee datos reales
+    ni usa SwiftData.
 - **29/09/2026 — primer build real y primera ejecución en simulador OK.** Puente
-  Swift↔`sharedKit` validado en ejecución (no solo compilación): `LaudoCalculator` devolvió
-  220 km × 8,0122 = 1762,684.
-- **Entorno:** se trabaja en una Mac prestada, repos movidos a `~/Developer/` para evitar
-  conflicto con iCloud Desktop sync. El proyecto Xcode espera al repo Android/`:shared` como
-  carpeta hermana con el nombre exacto `app-kilometros-completa` (path relativo hardcodeado en
-  el `.pbxproj`: `../app-kilometros-completa/shared/build/XCFrameworks/debug`) — si el
-  checkout local tiene otro nombre de carpeta, el build de Xcode no encuentra el
-  `.xcframework`.
+  Swift↔`sharedKit` validado en ejecución: `LaudoCalculator` devolvió 220 km × 8,0122 =
+  1762,684.
+- **Entorno:** Mac prestada, repos en `~/Developer/` (evita iCloud Desktop sync). El proyecto
+  Xcode espera al repo Android como carpeta hermana con el nombre exacto
+  `app-kilometros-completa` (path relativo en el `.pbxproj`:
+  `../app-kilometros-completa/shared/build/XCFrameworks/debug`). Sin Java en el PATH ni
+  Android Studio: Gradle con `JAVA_HOME=~/Developer/jdk/jdk-21.0.12.1+1/Contents/Home`. Sin
+  Android SDK (no corren `testAndroidHostTest` ni `:app:assembleDebug`). `gh` no instalado (los
+  PR se abren desde el navegador).
 
 ---
 
 ## DÓNDE ESTOY PARADO HOY
 
-**15/10/2026 — rama `feat/ios-legajo-dashboard`, con `origin/main` de este repo mergeado
-(trae las entradas de PANORAMA del 12/10 noche y 13/10 noche).** Sin cambios de Swift en esta
-sesión.
+**17/10/2026 — cierre.** `feat/ios-auth-real` pusheada; `main` de este repo en `2d610f8`
+(merge del PR #1). **Para compilar esta rama, el xcframework tiene que salir de
+`feat/shared-auth-contrato`** del repo Android (en `main` de Android todavía no existen
+`SesionStore` ni `KtorChoferAuthApi`); el checkout local de Android quedó en esa rama.
 
-- **`sharedKit.xcframework`:** `app-kilometros-completa` pasado a `main` (`706a369`, al día con
-  `origin/main`; `fix/semi-alias` ya no existe en el remoto, el alias `SEMI` → `SEMIDIRECTO`
-  está en `main` desde `ac1f215`). Entre `ac1f215` y `706a369` no cambió nada en `shared/`, así
-  que el framework regenerado es el mismo del 13/10 (`BUILD SUCCESSFUL`, sin recompilar
-  `:shared`). Build de `driverlog` para simulador: `BUILD SUCCEEDED`.
-- **Dashboard verificado de nuevo en simulador (iPhone 17 Pro):** `calcularTotales(de:
-  jornadaDeMuestra)` → **262.5 km / $2103.20** (220 de viaje + 42,5 de tome y cese por `"SEMI"`;
-  0 viáticos). Verificado con un `print` temporal en `driverlogApp.init()`, revertido antes del
-  commit; no se recorrió la pantalla a mano.
-- **Login:** legajo canónico al enviar y `SesionChoferDto.legajo` como fuente de la sesión
-  (`52b0fcf`). Sin probar contra el servidor real: sesión solo en memoria y contra
-  `FakeChoferAuthApi` (lo resuelve el próximo frente).
-- **Tipos de servicio en Swift:** no hay ninguna lista ni comparación literal — la lista y el
-  alias viven solo en `:shared`.
-
-**Entorno de esta Mac:** no hay Java en el PATH ni Android Studio; para Gradle se usó
-`JAVA_HOME=~/Developer/jdk/jdk-21.0.12.1+1/Contents/Home`.
+- **Auth real iOS — hecho, sin ninguna llamada real a Supabase:**
+  - Bundle id `com.driverlog.app.ios` (antes del primer enrolamiento: el Keychain y con él el
+    device_id están ligados al bundle id).
+  - `:shared` (`feat/shared-auth-contrato`: `42415af`, `132cf32`, `0bebc4b`): mapeo puro
+    `mapearLogin/Activar/Refresh` (primero `code`, después status), perfil nullable,
+    `SesionStore` + `SesionChofer` completa (tokens, vencimientos, legajo, perfil),
+    `KtorChoferAuthApi` (Ktor 2.3.12, Darwin solo en `iosMain`) + `SupabaseConfig`. Tests
+    `iosSimulatorArm64Test` 125/125.
+  - `KeychainSesionStore`: la sesión completa en un ítem; se borra en el primer arranque tras
+    reinstalar (el device_id no). Verificado desinstalando/instalando en el simulador.
+  - `ActivacionView`: validada a mano con el fake por Claudio (¿Primera vez? con legajo, PIN
+    no configurado → activación, OK/OK, credenciales inválidas, OK + login con error de red,
+    código de 7 con el botón apagado); el resto de los escenarios, solo por código.
+  - API real conectada (`db8882e`): `ProveedorAuth`, **Fake por defecto en el simulador y Real
+    en un iPhone**, toggle en el menú de debug.
+- **Legajo de prueba iOS: 9999998** ("TEST IOS BORRAR", Montevideo, efectivo, `cot`), alta y
+  código de enrolamiento por SQL (Claudio, SQL Editor). Sin device ni PIN. **El código vence
+  el 20/10 a las 22:08**; si vence, se regenera con `generar_codigo_enrolamiento('9999998')`
+  desde el SQL Editor con los claims de admin (revoca el anterior). El 9999999 es de Android y
+  no se toca.
+- **BLOQUEADO — primera prueba real desde el iPhone de pruebas** (iPhone 12, iOS 18.7.8, UDID
+  `00008101-000D2C3222C1001E`, puerto Lightning). Está emparejado con esta Mac pero
+  `unavailable` (última conexión 12/05); por Wi-Fi no conectó (no se anuncia en la red). **Falta
+  un cable USB-C a Lightning** para el primer emparejamiento por cable; después se puede
+  marcar "Connect via network" en Xcode. Además falta elegir el Team de firma (Claudio, con su
+  Apple ID; `DEVELOPMENT_TEAM` no se toca desde acá).
 
 ---
 
 ## PRÓXIMOS PASOS
 
-1. **Esperar la confirmación de Claudio** para abrir PR / mergear
-   `feat/ios-legajo-dashboard` a `main`. No se hace sin ella.
-2. **Frente auth real:** `ChoferAuthApi` con Ktor en `:shared` contra Supabase (en el repo
-   Android, commits separados), regenerar el xcframework y reemplazar `FakeChoferAuthApi` en
-   `driverlog/Auth/`.
-3. **Después, frente "jornada real":** reemplazar los placeholders del Dashboard
-   (`jornadaDeMuestra`, banner "EN CURSO", `eventos`), laudo y viático desde `configuracion`
-   con fallback (ver cola), y la edición de viaje del panel (ver cola).
+1. **Primera prueba real (cuando haya cable):** conectar el iPhone 12 por cable → Team de
+   firma → instalar (arranca en Real) → "¿Primera vez?" → 9999998 + código + PIN no trivial
+   → login automático → app. Si el código venció, regenerarlo antes por SQL.
+2. **En Windows:** `:shared:testAndroidHostTest` + `:app:assembleDebug` sobre
+   `feat/shared-auth-contrato`; si dan bien, mergearla a `main` del repo Android. **Recién
+   después, PR de `feat/ios-auth-real`** (depende de esa rama para compilar).
+3. **Después, frente "jornada real":** placeholders del Dashboard, refresh + `X-Chofer-Token`
+   para `/rest/v1/*`, laudo y viático desde `configuracion` con fallback, edición de viaje del
+   panel, formato de números (ver cola).
 4. **Antes de implementar viajes, guardias, mensajes o cierre de jornada en iOS, leer los
-   "Para iOS" de `PANORAMA.md`** (entradas del 30/09 al 13/10). Lo que más cambia respecto de
+   "Para iOS" de `PANORAMA.md`** (entradas del 30/09 al 17/10). Lo que más cambia respecto de
    lo que iOS tiene hoy: `TransicionesViaje` y `TransicionesGuardia` de `:shared` en vez de
-   reglas propias (`resultadoCancelacionPanel`, no `cancelablePorPanel`, que ya no existe);
-   `cancelar_viaje` con `fuente` / `asignacionId` (`Models/Mensaje.swift`); ids
-   `ASG-<mensaje_id>-<ORI>`; guardias con estado `programada`, `inicioMs` y `asignacionId`;
-   jornadas con `data.deleted = true`; y los hallazgos de Android del 11/10, 12/10 y 13/10 que
-   no hay que copiar.
+   reglas propias (`resultadoCancelacionPanel`, no `cancelablePorPanel`); `cancelar_viaje` con
+   `fuente` / `asignacionId` (`Models/Mensaje.swift`); ids `ASG-<mensaje_id>-<ORI>`; guardias
+   con estado `programada`, `inicioMs` y `asignacionId`; jornadas con `data.deleted = true`; y
+   los hallazgos de Android del 11/10 al 13/10 que no hay que copiar.
 5. Si se conecta otra pantalla a un tipo de `:shared`, seguir la convención de commit
    detallado del `CLAUDE.md` de este repo.
 
@@ -161,6 +145,16 @@ sesión.
 
 ## CHANGELOG
 
+- **17/10/2026** — PR #1 mergeado (Dashboard + legajo canónico, `2d610f8`). Frente auth real
+  iOS: bundle id `com.driverlog.app.ios` (`19cffa2`); contrato de auth en `:shared` (mapeos,
+  `SesionStore`, `SesionChofer` completa, `KtorChoferAuthApi` + tests MockEngine; rama Android
+  `feat/shared-auth-contrato`); `KeychainSesionStore` + `SupabaseConfig` desde `Info.plist`
+  (`80c5c5a`) con limpieza al reinstalar (`80aacf9`); `ActivacionView` con el fake, validada a
+  mano (`82cd237`); API real conectada, Fake en simulador / Real en iPhone (`db8882e`). Legajo
+  de prueba 9999998 dado de alta por SQL. Regla nueva en `CLAUDE.md`: revertir código temporal
+  por archivo puntual o `git stash`, con `status`/`diff` antes (`fd7c073`). PANORAMA: 4
+  hallazgos de Android en su cola, contrato de auth, legajo 9999998. Bloqueado: prueba real en
+  el iPhone (falta cable).
 - **15/10/2026** — Merge de `origin/main` (PANORAMA 12/10 noche y 13/10 noche);
   `app-kilometros-completa` a `main` (`706a369`), xcframework regenerado, build y Dashboard
   (262.5 km / $2103.20) verificados. Cola: sale el alias SEMI (ya en `main` de Android);

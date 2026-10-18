@@ -829,3 +829,21 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
     activación, Fake por defecto en el simulador y Real en el iPhone; ninguna llamada real
     todavía (la primera va a ser activar 9999998 desde el iPhone).
   **Para Android:** no usar el 9999998 desde Android; nada más que hacer.
+
+- **17/10/2026 (Mac, cierre) — iOS: auth real lista salvo la prueba en el iPhone; pendiente de Windows antes de mergear.**
+  Resumen del día del lado iOS (detalle en las entradas 17/10 de arriba y en
+  `Estado_actual.md` de `driverlog`): PR #1 mergeado; bundle id `com.driverlog.app.ios`;
+  contrato de auth en `:shared` + `KtorChoferAuthApi` (rama `feat/shared-auth-contrato`);
+  Keychain con limpieza al reinstalar; `ActivacionView` validada a mano con el fake; API real
+  conectada (Fake en simulador / Real en iPhone); legajo 9999998 dado de alta por SQL.
+  - **Bloqueado:** la primera prueba real (activar 9999998) desde el iPhone de pruebas (iPhone
+    12, Lightning): falta un cable USB-C a Lightning para el primer emparejamiento; por Wi-Fi
+    no conectó. El código de 9999998 vence el 20/10 a las 22:08; si vence, se regenera con
+    `generar_codigo_enrolamiento('9999998')` desde el SQL Editor (claims de admin).
+  - **Pendiente en Windows (orden):** `:shared:testAndroidHostTest` + `:app:assembleDebug`
+    sobre `feat/shared-auth-contrato` → si dan bien, merge a `main` del repo Android → recién
+    después, PR de `feat/ios-auth-real` en `driverlog` (compila solo contra el xcframework de
+    esa rama).
+  - **Cola nueva compartida:** frente de diseño "alta y aprobación de choferes desde el panel"
+    (ni Android ni el panel lo tienen definido).
+  **Para Android:** solo el pendiente de Windows de arriba; nada cambia en `:app`.
