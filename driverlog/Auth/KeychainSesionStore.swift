@@ -3,12 +3,12 @@ import Security
 import sharedKit
 
 // `SesionStore` de :shared sobre Keychain -- equivalente iOS de SesionChoferStore de Android
-// (EncryptedSharedPreferences). Solo tokens + vencimiento (`SesionChofer`); legajo y perfil van
-// aparte, como en Android.
+// (EncryptedSharedPreferences). Guarda la `SesionChofer` completa: tokens, vencimientos, legajo y
+// perfil (decisión 17/10: a diferencia de Android, que guarda legajo/perfil en prefs aparte).
 //
 // Dos ítems genéricos bajo el mismo service:
 //   - "sesion": JSON de la sesión completa en un solo ítem, así guardar/leer nunca ven un
-//     access token de una sesión con el refresh token de otra.
+//     access token de una sesión con el refresh token (o el legajo) de otra.
 //   - "vencida": marca (sin contenido útil) que deja `marcarVencida()` para forzar el login
 //     aunque el rechazo del servidor haya pasado en segundo plano.
 // `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, mismo criterio que DeviceIdStore: se
@@ -23,19 +23,49 @@ final class KeychainSesionStore: NSObject, SesionStore {
     private let cuentaSesion = "sesion"
     private let cuentaVencida = "vencida"
 
+    // Opcionales los que son nullable en `SesionChofer`. Un JSON guardado con un formato
+    // anterior (sin legajo) no decodifica y `leer()` da nil: obliga a loguear de nuevo, que es
+    // lo correcto (nunca hubo sesiones reales con ese formato).
     private struct SesionGuardada: Codable {
         let accessToken: String
         let refreshToken: String
         let expiraAtMs: Int64
+        let refreshExpiraAtMs: Int64?
+        let legajo: String
+        let nombre: String?
+        let base: String?
+        let tipo: String?
     }
 
     private override init() {}
+
+    // MARK: - Reinstalación
+
+    // El Keychain sobrevive a desinstalar la app; UserDefaults no. Si falta la marca, es el
+    // primer arranque de esta instalación: se borra cualquier sesión que haya quedado de una
+    // instalación anterior (tokens + marca de vencida), para que reinstalar = volver a loguear,
+    // igual que en Android. El device_id (DeviceIdStore, otro service) NO se toca: tiene que
+    // sobrevivir a la reinstalación porque login-chofer identifica al chofer por él.
+    // Se llama una vez al arrancar, antes de cualquier lectura de la sesión (driverlogApp.init).
+    private static let claveInstalacionVerificada = "sesionKeychainLimpiadaEnInstalacion"
+
+    func limpiarSiEsInstalacionNueva(defaults: UserDefaults = .standard) {
+        guard !defaults.bool(forKey: Self.claveInstalacionVerificada) else { return }
+        borrarItem(cuenta: cuentaSesion)
+        borrarItem(cuenta: cuentaVencida)
+        defaults.set(true, forKey: Self.claveInstalacionVerificada)
+    }
 
     func guardar(sesion: SesionChofer) {
         let guardada = SesionGuardada(
             accessToken: sesion.accessToken,
             refreshToken: sesion.refreshToken,
-            expiraAtMs: sesion.expiraAtMs
+            expiraAtMs: sesion.expiraAtMs,
+            refreshExpiraAtMs: sesion.refreshExpiraAtMs?.int64Value,
+            legajo: sesion.legajo,
+            nombre: sesion.nombre,
+            base: sesion.base,
+            tipo: sesion.tipo
         )
         guard let data = try? JSONEncoder().encode(guardada) else { return }
         escribir(data, cuenta: cuentaSesion)
@@ -47,10 +77,16 @@ final class KeychainSesionStore: NSObject, SesionStore {
             let data = leerItem(cuenta: cuentaSesion),
             let guardada = try? JSONDecoder().decode(SesionGuardada.self, from: data)
         else { return nil }
+        // `Long?` de Kotlin llega a Swift como `KotlinLong?` (boxed), no como `Int64?`.
         return SesionChofer(
             accessToken: guardada.accessToken,
             refreshToken: guardada.refreshToken,
-            expiraAtMs: guardada.expiraAtMs
+            expiraAtMs: guardada.expiraAtMs,
+            refreshExpiraAtMs: guardada.refreshExpiraAtMs.map { KotlinLong(value: $0) },
+            legajo: guardada.legajo,
+            nombre: guardada.nombre,
+            base: guardada.base,
+            tipo: guardada.tipo
         )
     }
 
