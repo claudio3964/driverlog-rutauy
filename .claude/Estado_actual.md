@@ -23,9 +23,21 @@
   `refreshExpiraAtMs`); `KtorChoferAuthApi` (Ktor 2.3.12, motor Darwin solo en `iosMain`);
   `SupabaseConfig` desde `Config/Info.plist` (solo URL + publishable key);
   `KeychainSesionStore` (un ítem, `AfterFirstUnlockThisDeviceOnly`) que se limpia en el primer
-  arranque tras reinstalar (el device_id no se toca). Falta: conectar `LoginViewModel` a
-  `KtorChoferAuthApi` + `KeychainSesionStore` — **bloqueado hasta tener un legajo de prueba
-  iOS**; refresh / `X-Chofer-Token` para `/rest/v1/*` llega con "jornada real".
+  arranque tras reinstalar (el device_id no se toca).
+  **`ActivacionView` validada con el fake (17/10, `82cd237`):** código con guiones (normalizado
+  como `activar-chofer`), PIN + confirmación, activar → login automático → sesión completa en
+  Keychain → app; errores separados (PIN inválido / credenciales genérico / servidor / red);
+  entradas desde "¿Primera vez?" y desde un 409 `PIN_NOT_SET` con el legajo cargado. El login
+  también guarda la sesión en Keychain. Recorrido a mano de Claudio OK en: "¿Primera vez?" con
+  legajo cargado, PIN no configurado → activación, activación OK/OK, credenciales inválidas,
+  OK + login con error de red (vuelve al login con aviso), código de 7 caracteres con el botón
+  apagado. El resto de los escenarios (PIN inválido, error de servidor/red en la activación,
+  PIN distintos) verificado solo por código en el simulador, no a mano.
+  **Próximo paso, BLOQUEADO hasta tener un legajo de prueba iOS** (enrolado desde el panel
+  con su código): reemplazar `FakeChoferAuthApi` por `KtorChoferAuthApi(config:
+  SupabaseConfig.desdeInfoPlist())` en `LoginViewModel` y `ActivacionViewModel`, y probar
+  activación + login reales. Refresh / `X-Chofer-Token` para `/rest/v1/*` llega con
+  "jornada real".
 - **Cola:**
   - **PENDIENTE en Windows, antes de mergear `feat/shared-auth-contrato` (repo Android):**
     `:shared:testAndroidHostTest` y `:app:assembleDebug`. En la Mac no hay Android SDK; la
