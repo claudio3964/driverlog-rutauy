@@ -812,3 +812,20 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   de `:app` vía `:shared` aunque `:app` no lo use.
   **Para Android:** sin cambio de comportamiento (`:app` no usa nada de esto); solo el
   pendiente de arriba.
+
+- **17/10/2026 (Mac) — Legajo de prueba iOS: 9999998 (alta por SQL; el panel no tiene alta).**
+  - **Legajo de prueba iOS = 9999998** ("TEST IOS BORRAR", Montevideo, efectivo, `cot`). El
+    **9999999 queda para Android** y no se usa desde iOS (iniciar sesión con él desde otro
+    dispositivo lo desvincularía del Huawei: login-chofer resuelve al chofer por device_id).
+  - **Alta hecha por SQL** (Claudio, SQL Editor, con claims de su admin para que
+    `alta_chofer_supervisor` y `generar_codigo_enrolamiento` pasen
+    `caller_is_supervisor_or_superadmin()`), **porque el panel no tiene alta ni generación de
+    código de enrolamiento**. Quedó sin device_id ni PIN; código generado, vence 20/10 22:08.
+    9999999 sin cambios.
+  - **Frente de diseño pendiente (los dos lados): alta y aprobación de choferes desde el
+    panel.** Ni Android ni el panel tienen definido el flujo (quién da el alta, cómo se genera y
+    entrega el código, si hay aprobación). Hasta entonces, un alta nueva es por SQL.
+  - iOS (`driverlog`, `feat/ios-auth-real` `db8882e`): `KtorChoferAuthApi` conectada en login y
+    activación, Fake por defecto en el simulador y Real en el iPhone; ninguna llamada real
+    todavía (la primera va a ser activar 9999998 desde el iPhone).
+  **Para Android:** no usar el 9999998 desde Android; nada más que hacer.

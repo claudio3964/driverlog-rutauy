@@ -33,12 +33,26 @@
   OK + login con error de red (vuelve al login con aviso), código de 7 caracteres con el botón
   apagado. El resto de los escenarios (PIN inválido, error de servidor/red en la activación,
   PIN distintos) verificado solo por código en el simulador, no a mano.
-  **Próximo paso, BLOQUEADO hasta tener un legajo de prueba iOS** (enrolado desde el panel
-  con su código): reemplazar `FakeChoferAuthApi` por `KtorChoferAuthApi(config:
-  SupabaseConfig.desdeInfoPlist())` en `LoginViewModel` y `ActivacionViewModel`, y probar
-  activación + login reales. Refresh / `X-Chofer-Token` para `/rest/v1/*` llega con
-  "jornada real".
+  **Legajo de prueba iOS: 9999998** ("TEST IOS BORRAR", Montevideo, efectivo, empresa `cot`;
+  el 9999999 queda para Android y no se toca). Alta y código de enrolamiento hechos por
+  Claudio el 17/10 desde el SQL Editor (`alta_chofer_supervisor` + `generar_codigo_enrolamiento`
+  con claims de su admin), porque el panel no tiene alta ni generación de código. Quedó sin
+  device ni PIN; **el código vence el 20/10 a las 22:08** (si vence o se pierde, otro
+  `generar_codigo_enrolamiento('9999998')` revoca el anterior y da uno nuevo).
+  **API real conectada (17/10, `db8882e`):** `ProveedorAuth` elige Fake o `KtorChoferAuthApi`
+  en login y activación. Default **Fake en el simulador, Real en un iPhone**; toggle Fake/Real
+  en el menú de debug (persistido en UserDefaults; en Release siempre Real). Pasar a Real borra
+  la sesión del Keychain (no el device_id). Verificado en simulador sin llamar a la API.
+  **Ninguna llamada real todavía.**
+  **Próximo paso: primera llamada real, desde el iPhone** — Claudio configura el Team de firma
+  con su Apple ID (DEVELOPMENT_TEAM no se toca desde acá), instala, y activa 9999998 con el
+  código (antes del 20/10 22:08) → login automático → app. Refresh / `X-Chofer-Token` para
+  `/rest/v1/*` llega con "jornada real".
 - **Cola:**
+  - **Frente de diseño pendiente: alta y aprobación de choferes desde el panel.** Hoy el panel
+    no da de alta choferes ni genera códigos de enrolamiento (el 9999998 se hizo por SQL con
+    claims de admin). Ni Android ni el panel tienen definido el flujo (quién da el alta, cómo se
+    entrega el código, si hay aprobación). Sesión de diseño propia; no arrancar suelto.
   - **PENDIENTE en Windows, antes de mergear `feat/shared-auth-contrato` (repo Android):**
     `:shared:testAndroidHostTest` y `:app:assembleDebug`. En la Mac no hay Android SDK; la
     rama agrega `ktor-client-core` 2.3.12 como `api` en `commonMain`, que entra al classpath
