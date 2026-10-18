@@ -2,11 +2,23 @@ import SwiftUI
 import sharedKit
 
 // Espejo de LoginScreen.kt (Android) -- ver LoginViewModel.swift para el detalle de qué texto
-// sale de dónde y qué dos casos no tienen equivalente en Android (ErrorServidor, placeholder de
-// enrolamiento).
+// sale de dónde y qué caso no tiene equivalente en Android (ErrorServidor).
 struct LoginView: View {
-    @State private var viewModel = LoginViewModel()
+    @State private var viewModel: LoginViewModel
     var onLoginSuccess: () -> Void
+    // "¿Primera vez?" o un 409 PIN_NOT_SET -> ActivacionView con este legajo.
+    var onIrAActivacion: (String) -> Void
+
+    init(
+        legajoInicial: String = "",
+        aviso: String? = nil,
+        onLoginSuccess: @escaping () -> Void,
+        onIrAActivacion: @escaping (String) -> Void
+    ) {
+        _viewModel = State(initialValue: LoginViewModel(legajoInicial: legajoInicial, aviso: aviso))
+        self.onLoginSuccess = onLoginSuccess
+        self.onIrAActivacion = onIrAActivacion
+    }
 
     #if DEBUG
     @State private var escenarioDebug: ChoferAuthEscenario = .ok
@@ -64,6 +76,14 @@ struct LoginView: View {
                     viewModel.sanearPin(nuevoValor)
                 }
 
+            if let aviso = viewModel.aviso {
+                Text(aviso)
+                    .font(.system(size: 13))
+                    .foregroundColor(.green)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+            }
+
             if let errorMsg = viewModel.errorMsg {
                 Text(errorMsg)
                     .font(.system(size: 13))
@@ -81,8 +101,13 @@ struct LoginView: View {
 
             Button {
                 Task {
-                    if await viewModel.ingresar() {
+                    switch await viewModel.ingresar() {
+                    case .logueado:
                         onLoginSuccess()
+                    case .irAActivacion(let legajo):
+                        onIrAActivacion(legajo)
+                    case .sigueEnPantalla:
+                        break
                     }
                 }
             } label: {
@@ -107,7 +132,7 @@ struct LoginView: View {
             .padding(.top, 24)
 
             Button {
-                viewModel.mostrarPlaceholderActivacion()
+                onIrAActivacion(viewModel.legajoCanonico)
             } label: {
                 Text("¿Primera vez? Activá tu cuenta")
                     .font(.system(size: 13))
@@ -119,11 +144,6 @@ struct LoginView: View {
             Spacer()
         }
         .padding(32)
-        .alert("Activación", isPresented: $viewModel.mostrarPlaceholderEnrolamiento) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("enrolamiento: próximo paso")
-        }
     }
 
     #if DEBUG
@@ -160,7 +180,8 @@ struct LoginView: View {
 // Fondo + borde con colores semánticos (secondarySystemBackground/separator) -- ninguno
 // hardcodeado, los dos se adaptan solos en modo claro/oscuro, a diferencia de .roundedBorder
 // (que en modo oscuro casi no se distingue del fondo de la pantalla).
-private struct CampoLogin: ViewModifier {
+// Interno (no private): lo usa también ActivacionView.
+struct CampoLogin: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, 12)
@@ -174,10 +195,10 @@ private struct CampoLogin: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     func campoLogin() -> some View { modifier(CampoLogin()) }
 }
 
 #Preview {
-    LoginView(onLoginSuccess: {})
+    LoginView(onLoginSuccess: {}, onIrAActivacion: { _ in })
 }

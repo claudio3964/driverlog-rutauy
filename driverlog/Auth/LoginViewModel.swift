@@ -3,10 +3,10 @@ import Observation
 import sharedKit
 
 // Espejo de LoginScreen.kt (Android) -- mismos textos, misma validación de PIN, mismo criterio
-// de habilitado del botón. Dos divergencias deliberadas de Android, documentadas en los
-// comentarios de cada rama de `ingresar()`: ErrorServidor con texto propio (decisión explícita,
-// no es un "mismo que Android" -- ver más abajo) y el placeholder de enrolamiento (la pantalla
-// de activación real todavía no existe en iOS).
+// de habilitado del botón. Una divergencia deliberada de Android, documentada en su rama de
+// `ingresar()`: ErrorServidor con texto propio (decisión explícita, no es un "mismo que
+// Android" -- ver más abajo). PinNoConfigurado lleva a ActivacionView, como Android lleva a
+// ActivacionScreen.
 //
 // SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor a nivel de proyecto -- esta clase y sus métodos ya
 // corren en el main actor sin anotación explícita.
@@ -21,7 +21,8 @@ final class LoginViewModel {
     // Android hoy muestra "Intento N de 5" con `intentos` + un "5" hardcodeado, en vez de usar
     // `intentosRestantes` que el DTO ya le da -- queda anotado para corregir ahí también.
     var intentosRestantes: Int32? = nil
-    var mostrarPlaceholderEnrolamiento: Bool = false
+    // Aviso no-error (ej. "Cuenta activada…" al volver de la activación sin sesión).
+    var aviso: String? = nil
     // Legajo de la sesión activa, ya canónico. Fuente: `SesionChoferDto.legajo` (el que devuelve
     // el servidor, dueño.legajo de `choferes`); mientras login-chofer no lo mande (null), cae al
     // que se envió, ya normalizado -- mismo criterio que documenta el DTO en :shared.
@@ -34,16 +35,17 @@ final class LoginViewModel {
 
     private let deviceIdStore: DeviceIdStore
 
-    init(deviceIdStore: DeviceIdStore = .shared) {
+    init(legajoInicial: String = "", aviso: String? = nil, deviceIdStore: DeviceIdStore = .shared) {
+        self.legajo = legajoInicial
+        self.aviso = aviso
         self.deviceIdStore = deviceIdStore
     }
 
-    // Forma canónica del legajo: trim + mayúsculas. Mismo que `normalizarLegajo` de
-    // ViajeRepositoy.kt (`legajo.trim().uppercase()`) -- lo tipeado se normaliza antes de
-    // mandarlo para que un "abc1" no caiga en la rama device_legajo_mismatch de login-chofer y
-    // cuente contra el umbral de bloqueo.
-    private var legajoCanonico: String {
-        legajo.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    // Forma canónica del legajo (NormalizacionAuth.legajo: trim + mayúsculas) -- lo tipeado se
+    // normaliza antes de mandarlo para que un "abc1" no caiga en la rama
+    // device_legajo_mismatch de login-chofer y cuente contra el umbral de bloqueo.
+    var legajoCanonico: String {
+        NormalizacionAuth.legajo(legajo)
     }
 
     // Mismo criterio que el botón de LoginScreen.kt: `legajo.isNotBlank() && pin.length == 6 && !verificando`.
@@ -55,6 +57,7 @@ final class LoginViewModel {
     func actualizarLegajo(_ nuevoValor: String) {
         legajo = nuevoValor
         errorMsg = nil
+        aviso = nil
     }
 
     // Mismo filtro y mismo efecto que LoginScreen.kt:
@@ -68,20 +71,27 @@ final class LoginViewModel {
     // el modelo DESPUÉS de que SwiftUI ya escribió el valor crudo -- hay un round-trip de más,
     // pero es lo que realmente queda sincronizado con SecureField.
     func sanearPin(_ valorCrudo: String) {
-        let saneado = String(valorCrudo.filter(\.isNumber).prefix(6))
+        let saneado = NormalizacionAuth.pin(valorCrudo)
         if saneado != pin {
             pin = saneado
         }
         errorMsg = nil
     }
 
-    /// Devuelve `true` si el login fue exitoso (caller navega al Dashboard). La sesión (`sesion`
-    /// del caso `.ok`) queda solo en memoria por ahora -- no se persiste ni se guarda ningún
-    /// token, a propósito (pendiente de la implementación real).
-    func ingresar() async -> Bool {
-        guard puedeIngresar else { return false }
+    enum Resultado {
+        case logueado
+        // 409 PIN_NOT_SET: el chofer existe pero nunca activó -> ActivacionView con este legajo.
+        case irAActivacion(legajo: String)
+        case sigueEnPantalla
+    }
+
+    /// `.logueado` -> el caller navega a la app. La sesión del `.ok` se guarda completa en
+    /// Keychain (SesionLogin.guardar), igual que tras una activación; el PIN no se guarda.
+    func ingresar() async -> Resultado {
+        guard puedeIngresar else { return .sigueEnPantalla }
         verificando = true
         errorMsg = nil
+        aviso = nil
         intentosRestantes = nil
         defer { verificando = false }
 
@@ -94,12 +104,11 @@ final class LoginViewModel {
             )
             switch onEnum(of: resultado) {
             case .ok(let ok):
-                legajoSesion = ok.sesion.legajo ?? legajoEnviado
-                return true
+                legajoSesion = SesionLogin.guardar(ok.sesion, legajoEnviado: legajoEnviado)
+                return .logueado
             case .pinNoConfigurado(_):
-                // Android navega a la pantalla real de activación (onIrAActivacion) -- todavía
-                // no existe en iOS, se muestra el placeholder pedido en su lugar.
-                mostrarPlaceholderEnrolamiento = true
+                // Mismo destino que Android (onIrAActivacion), con el legajo ya cargado.
+                return .irAActivacion(legajo: legajoEnviado)
             case .credencialesInvalidas(let c):
                 errorMsg = "Legajo o PIN incorrectos."
                 intentosRestantes = c.intentosRestantes?.int32Value
@@ -119,12 +128,7 @@ final class LoginViewModel {
         } catch {
             errorMsg = "Sin conexión. Verificá tu internet e intentá de nuevo."
         }
-        return false
-    }
-
-    // Botón "¿Primera vez? Activá tu cuenta" -- mismo destino que PinNoConfigurado (ver arriba).
-    func mostrarPlaceholderActivacion() {
-        mostrarPlaceholderEnrolamiento = true
+        return .sigueEnPantalla
     }
 
     #if DEBUG
