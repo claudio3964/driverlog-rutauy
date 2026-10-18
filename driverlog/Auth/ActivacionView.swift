@@ -153,18 +153,21 @@ struct ActivacionView: View {
     // enseguida después de una activación OK (cada uno con su instancia del fake).
     private var selectorEscenariosDebug: some View {
         VStack(spacing: 4) {
-            Picker("Activación (debug)", selection: $escenarioActivar) {
-                Text("Activación: OK").tag(ChoferAuthEscenario.ok)
-                Text("Activación: PIN inválido").tag(ChoferAuthEscenario.pinInvalido)
-                Text("Activación: credenciales inválidas").tag(ChoferAuthEscenario.credencialesInvalidasSinIntentos)
-                Text("Activación: error de servidor").tag(ChoferAuthEscenario.errorServidor)
-                Text("Activación: error de red").tag(ChoferAuthEscenario.errorRed)
-            }
-            Picker("Login posterior (debug)", selection: $escenarioLoginPosterior) {
-                Text("Login posterior: OK").tag(ChoferAuthEscenario.ok)
-                Text("Login posterior: error de red").tag(ChoferAuthEscenario.errorRed)
-                Text("Login posterior: error de servidor").tag(ChoferAuthEscenario.errorServidor)
-                Text("Login posterior: credenciales inválidas").tag(ChoferAuthEscenario.credencialesInvalidasSinIntentos)
+            SelectorModoAuthDebug()
+            if ProveedorAuth.shared.modo == .fake {
+                Picker("Activación (debug)", selection: $escenarioActivar) {
+                    Text("Activación: OK").tag(ChoferAuthEscenario.ok)
+                    Text("Activación: PIN inválido").tag(ChoferAuthEscenario.pinInvalido)
+                    Text("Activación: credenciales inválidas").tag(ChoferAuthEscenario.credencialesInvalidasSinIntentos)
+                    Text("Activación: error de servidor").tag(ChoferAuthEscenario.errorServidor)
+                    Text("Activación: error de red").tag(ChoferAuthEscenario.errorRed)
+                }
+                Picker("Login posterior (debug)", selection: $escenarioLoginPosterior) {
+                    Text("Login posterior: OK").tag(ChoferAuthEscenario.ok)
+                    Text("Login posterior: error de red").tag(ChoferAuthEscenario.errorRed)
+                    Text("Login posterior: error de servidor").tag(ChoferAuthEscenario.errorServidor)
+                    Text("Login posterior: credenciales inválidas").tag(ChoferAuthEscenario.credencialesInvalidasSinIntentos)
+                }
             }
         }
         .pickerStyle(.menu)

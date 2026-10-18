@@ -147,15 +147,21 @@ struct LoginView: View {
     }
 
     #if DEBUG
+    // Toggle Fake/Real y, solo en Fake, el escenario del fake.
     private var selectorEscenarioDebug: some View {
-        Picker("Escenario (debug)", selection: $escenarioDebug) {
-            ForEach(ChoferAuthEscenario.allCases, id: \.self) { escenario in
-                Text(nombreDebug(escenario)).tag(escenario)
+        VStack(spacing: 4) {
+            SelectorModoAuthDebug()
+            if ProveedorAuth.shared.modo == .fake {
+                Picker("Escenario (debug)", selection: $escenarioDebug) {
+                    ForEach(ChoferAuthEscenario.allCases, id: \.self) { escenario in
+                        Text(nombreDebug(escenario)).tag(escenario)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: escenarioDebug) { _, nuevo in
+                    viewModel.aplicarEscenarioDebug(nuevo)
+                }
             }
-        }
-        .pickerStyle(.menu)
-        .onChange(of: escenarioDebug) { _, nuevo in
-            viewModel.aplicarEscenarioDebug(nuevo)
         }
         .padding(.horizontal)
         .padding(.top, 8)

@@ -12,9 +12,10 @@ import sharedKit
 // (en memoria) -> sesión guardada -> app. Si la activación salió bien pero el login no, se
 // vuelve al login con el legajo cargado y un aviso: la cuenta ya quedó activada.
 //
-// Todavía contra FakeChoferAuthApi (el real queda bloqueado hasta tener un legajo de prueba
-// iOS). Dos instancias del fake, una por llamada, para poder probar en debug "activa bien pero
-// el login posterior falla" -- con una sola, el mismo escenario rige para las dos llamadas.
+// Fake o real según ProveedorAuth (Fake por defecto en el simulador, Real en un iPhone). Dos
+// instancias del fake, una por llamada, para poder probar en debug "activa bien pero el login
+// posterior falla" -- con una sola, el mismo escenario rige para las dos llamadas. En modo Real
+// las dos llamadas van a la misma KtorChoferAuthApi.
 @Observable
 final class ActivacionViewModel {
     enum Resultado {
@@ -30,13 +31,15 @@ final class ActivacionViewModel {
     var procesando: Bool = false
     var errorMsg: String? = nil
 
-    private let apiActivar = FakeChoferAuthApi(escenario: .ok, delayMs: 400)
-    private let apiLogin = FakeChoferAuthApi(escenario: .ok, delayMs: 400)
+    private let fakeActivar = FakeChoferAuthApi(escenario: .ok, delayMs: 400)
+    private let fakeLogin = FakeChoferAuthApi(escenario: .ok, delayMs: 400)
     private let deviceIdStore: DeviceIdStore
+    private let proveedor: ProveedorAuth
 
-    init(legajoInicial: String = "", deviceIdStore: DeviceIdStore = .shared) {
+    init(legajoInicial: String = "", deviceIdStore: DeviceIdStore = .shared, proveedor: ProveedorAuth = .shared) {
         self.legajo = legajoInicial
         self.deviceIdStore = deviceIdStore
+        self.proveedor = proveedor
     }
 
     var legajoCanonico: String { NormalizacionAuth.legajo(legajo) }
@@ -71,6 +74,12 @@ final class ActivacionViewModel {
 
     func activar() async -> Resultado {
         guard puedeActivar else { return .sigueEnPantalla }
+        guard let apiActivar = proveedor.api(fake: fakeActivar),
+              let apiLogin = proveedor.api(fake: fakeLogin)
+        else {
+            errorMsg = ProveedorAuth.mensajeSinConfig
+            return .sigueEnPantalla
+        }
         procesando = true
         errorMsg = nil
         defer { procesando = false }
@@ -129,8 +138,8 @@ final class ActivacionViewModel {
 
     #if DEBUG
     func aplicarEscenariosDebug(activar: ChoferAuthEscenario, loginPosterior: ChoferAuthEscenario) {
-        apiActivar.escenario = activar
-        apiLogin.escenario = loginPosterior
+        fakeActivar.escenario = activar
+        fakeLogin.escenario = loginPosterior
     }
     #endif
 }

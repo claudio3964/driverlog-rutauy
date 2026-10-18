@@ -28,17 +28,23 @@ final class LoginViewModel {
     // que se envió, ya normalizado -- mismo criterio que documenta el DTO en :shared.
     private(set) var legajoSesion: String? = nil
 
-    // Todavía no existe una implementación real de ChoferAuthApi (ver PANORAMA.md, pendiente de
-    // :app) -- se usa el Fake siempre por ahora. Cuando exista la real, este `let` pasa a
-    // recibirse por constructor en vez de crearse acá.
+    // Fake (escenarios de debug) o real (KtorChoferAuthApi) según ProveedorAuth: Fake por
+    // defecto en el simulador, Real en un iPhone, toggle en el menú de debug.
     private let fakeApi = FakeChoferAuthApi(escenario: .ok, delayMs: 400)
 
     private let deviceIdStore: DeviceIdStore
+    private let proveedor: ProveedorAuth
 
-    init(legajoInicial: String = "", aviso: String? = nil, deviceIdStore: DeviceIdStore = .shared) {
+    init(
+        legajoInicial: String = "",
+        aviso: String? = nil,
+        deviceIdStore: DeviceIdStore = .shared,
+        proveedor: ProveedorAuth = .shared
+    ) {
         self.legajo = legajoInicial
         self.aviso = aviso
         self.deviceIdStore = deviceIdStore
+        self.proveedor = proveedor
     }
 
     // Forma canónica del legajo (NormalizacionAuth.legajo: trim + mayúsculas) -- lo tipeado se
@@ -95,9 +101,13 @@ final class LoginViewModel {
         intentosRestantes = nil
         defer { verificando = false }
 
+        guard let api = proveedor.api(fake: fakeApi) else {
+            errorMsg = ProveedorAuth.mensajeSinConfig
+            return .sigueEnPantalla
+        }
         let legajoEnviado = legajoCanonico
         do {
-            let resultado = try await fakeApi.loginChofer(
+            let resultado = try await api.loginChofer(
                 legajo: legajoEnviado,
                 deviceId: deviceIdStore.deviceId,
                 pin: pin
