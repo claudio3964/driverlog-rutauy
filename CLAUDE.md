@@ -72,6 +72,11 @@ limpiarlo sin que lo pida.
   `data`/`travels`/`guards`, decisiones de flujo, cambios en `:shared` o en cómo iOS lo
   consume), agregá una entrada fechada con qué cambió y qué implica para el otro lado. Si no,
   no se agrega. Cambios internos de una sola plataforma van solo en `Estado_actual.md`."**
+- **Código temporal de prueba (regla del 17/10):** nunca revertir con `git checkout` amplio
+  (de carpeta o de todo el repo). Revertir solo el archivo puntual o usar `git stash`. Antes de
+  revertir, `git status`/`git diff` para confirmar que no hay cambios reales mezclados.
+  (Motivo: el 17/10 un `git checkout -- <archivo>` para sacar un `print` de prueba se llevó
+  también un cambio real sin commitear del mismo archivo; se detectó y se rehízo antes del push.)
 - Siempre leer el archivo antes de modificarlo
 - Compilar (`xcodebuild ... build`, ver sección Build) antes de commit — con el
   `sharedKit.xcframework` regenerado si hubo cambios en `:shared`
