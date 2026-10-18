@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Se combina con el Info.plist que genera Xcode (GENERATE_INFOPLIST_FILE = YES); acá van solo
+  las claves propias. Fuera de driverlog/ a propósito: esa carpeta es un grupo sincronizado y
+  todo lo que hay adentro se copia como recurso.
+
+  Supabase: SOLO la URL del proyecto y la publishable key (sb_publishable_…), las dos públicas
+  por diseño (Android las tiene en SupabaseHttp.kt). NUNCA una service_role ni otra clave
+  secreta: SupabaseConfig+InfoPlist.swift rechaza cualquier clave que no sea publishable.
+-->
+<plist version="1.0">
+<dict>
+	<key>SupabaseURL</key>
+	<string>https://frjeivfpldcigklwepqt.supabase.co</string>
+	<key>SupabasePublishableKey</key>
+	<string>sb_publishable_6A7tufjD-rTAUAPfxyziyw_3kXMumzJ</string>
+</dict>
+</plist>
