@@ -754,3 +754,43 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   real (`ChoferAuthApi` con Ktor en `:shared`). Sin cambios de RPC, Edge Functions ni `:shared`.
   **Para Android:** nada que hacer; el frente del legajo queda cerrado en servidor, Android e
   iOS.
+
+- **18/10/2026 (Windows) — `:shared`: contrato de auth validado en Android y MERGEADO a `main`.**
+  Cierra el "pendiente en Windows" de las entradas del 17/10 (esas no se editan; esta las
+  supera). `feat/shared-auth-contrato` (`42415af`, `132cf32`, `0bebc4b`) mergeada a `main` con
+  `--no-ff` en `5d4233d` (pusheado); la rama se borró en local y en origin.
+  - Validación sobre `0bebc4b`: `:shared:testAndroidHostTest` 126/126 (`ChoferAuthMapeoTest`
+    29, `ChoferAuthDecodingTest` 20, `KtorChoferAuthApiTest` 12), `:app:testDebugUnitTest`
+    55/55, `:app:assembleDebug` OK.
+  - Classpath de runtime de `:app`: Ktor 2.3.12 sin choques; kotlinx-serialization 1.7.3;
+    coroutines resuelve a **1.9.0** en Android (`:shared` declara 1.7.3, lo suben otras deps de
+    `:app`). OkHttp 4.12.0.
+  - **Android sigue sin motor Ktor** (`androidMain` sin engine, `:app` con OkHttp): anotado en
+    la cola de Android para cuando `:app` use `KtorChoferAuthApi`.
+  **Para iOS (este repo):** desbloqueado. Regenerar el xcframework desde `main` del repo
+  Android (ya no desde la rama), rebasear `feat/ios-auth-real` si hace falta y recién ahí el
+  PR. El PR ya no depende de una rama sin mergear.
+  **Para Android:** sin cambio de comportamiento; `:app` no usa nada de esto.
+  **Nota de propagación (23/10, Windows):** esta entrada y la del 23/10 se agregaron a `main`
+  de este repo antes del merge de `feat/ios-auth-real`, que trae las 4 entradas del 17/10. Al
+  mergear esa rama **va a haber conflicto al final de este archivo**: las 4 entradas del 17/10
+  van **antes** de esta del 18/10 (mismo orden que la copia del repo Android).
+
+- **23/10/2026 (Windows) — `:shared`: viaje con `finReal < inicioReal` (cadena del adelanto,
+  pieza (a)).** Pasa cuando "Iniciar ahora" llega más de 10 min antes (`activar_viaje` deja
+  `inicioReal` = hora programada, `ADELANTO_MAYOR_AL_LIMITE`) y el chofer finaliza antes de esa
+  hora. El servidor lo sigue aceptando; sin cambios de RPC ni de forma de `data`.
+  - **`LaudoCalculator`:** en las horas de la jornada (respaldo de 9 h del viático y el corte
+    `horas <= 0`) ese viaje cuenta **0 min**; antes restaba y podía comerse el viático. No se
+    excluye: sus km y su `finReal` (fin de jornada para las franjas) siguen contando. El valor
+    exacto (`finReal − inicio_solicitado`) queda para cuando el laudo tenga ese dato.
+  - **`SolapamientoValidator.encontrarConflicto` / `encontrarConflictoGuardia`:** con un
+    finalizado invertido, la ventana del viaje existente se reduce al instante `finReal` (antes
+    quedaba invertida y no daba conflicto nunca).
+  - Tests: `:shared:testAndroidHostTest` 136/136 en Windows (`LaudoDuracionNegativaTest` 6,
+    `SolapamientoVentanaInvertidaTest` 4, con datos reales de `9999999-20261005` y
+    `9999999-20261023`). Commit `ec5f2ec` del repo Android, pusheado.
+  - **No recalcula snapshots cerrados.**
+  **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
+  `.xcframework`; el cálculo queda corregido sin tocar Swift. Si iOS mide duraciones de viajes
+  por su cuenta, no restar las negativas.
