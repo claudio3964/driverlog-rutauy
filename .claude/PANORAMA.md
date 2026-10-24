@@ -794,3 +794,19 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (Mac):** correr los tests de `:shared` en los targets iOS y regenerar el
   `.xcframework`; el cálculo queda corregido sin tocar Swift. Si iOS mide duraciones de viajes
   por su cuenta, no restar las negativas.
+
+- **23/10/2026 (Windows) — Supabase + panel: vista `public.inconsistencias_horario` (cadena del
+  adelanto, pieza 2).** Vista nueva en `public` (migración `20261023010000` del repo Android,
+  aplicada en prod el 23/10; `security_invoker`, SELECT solo para `authenticated`). La calcula
+  desde `jornadas.data->'travels'`, sin escritor nuevo ni trigger, y da dos alertas:
+  - **`ADELANTO_LINEA`:** `activacion.inicio_solicitado < inicioProgramado`, tolerancia cero,
+    solo TURNO, DIRECTO y SEMIDIRECTO (también `SEMI`).
+  - **`FIN_ANTERIOR_A_INICIO`:** `finReal < inicioReal`, cualquier tipo.
+
+  Las jornadas anuladas y las guardias no entran. La lee la sección "Horario" de la pestaña
+  Inconsistencias del panel (`cot-admin-next` `9f0a6a9`, deployada y verificada en prod).
+  Reglas en `.claude/REGLAS_NEGOCIO.md` del repo Android, "Adelanto". Sin cambios de RPC ni de
+  forma de `data`. Commit `09f14c0` del repo Android, pusheado.
+  **Para iOS (este repo):** nada que hacer. Si algún día iOS inicia viajes programados antes de
+  hora, tiene que mandar el toque como `p_inicio_real` (y el motivo) a `activar_viaje`, igual
+  que Android, para que la vista lo vea.
