@@ -810,3 +810,31 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (este repo):** nada que hacer. Si algún día iOS inicia viajes programados antes de
   hora, tiene que mandar el toque como `p_inicio_real` (y el motivo) a `activar_viaje`, igual
   que Android, para que la vista lo vea.
+
+- **24/10/2026 (Windows) — Laudo: valores y montos pasan al servidor (pieza 3 de la cadena del
+  adelanto, diseño aprobado) + `configuracion` solo la escribe el superadmin (E0, en prod).**
+  - **Reglas nuevas** (`.claude/REGLAS_NEGOCIO.md` del repo Android, "Valores del laudo" y
+    "Pernocte en La Paloma"): la app captura en campo, y **los montos se determinan y congelan en
+    el servidor**. La única fuente de los valores (precio por km, viático, tome y cese 42,5, km
+    extra de DIRECTO 30 y 37,5 La Pedrera **en los dos sentidos**, km de guardia 30/40) va a ser
+    una tabla con vigencia mensual. **Ningún valor fijo en el código decide un monto.**
+    DIRECTÍSIMO = DIRECTO; Chuy da 0 km extra. `precio_km_guarda` y `viatico_alojamiento` se
+    cargan pero no entran en el laudo del chofer. Pernocte en La Pedrera: EXPRESO de 10 km a La
+    Paloma, y al día siguiente otro de vuelta.
+  - **Bug en `:shared` (sin arreglar, se arregla en E3):** `LaudoCalculator.calcularAcopladoKm`
+    mira solo el destino, así que una vuelta desde La Pedrera paga 30 en vez de 37,5. Hoy no
+    costó plata: no hay viajes por La Pedrera en la base.
+  - **Diseño (E0-E7, nada implementado salvo E0):** tabla `valores_laudo` (E1); la app guarda los
+    valores leídos y, si nunca leyó, muestra "sin calcular" (E2); `LaudoCalculator` recibe
+    `ValoresLaudo` y la zona como parámetros, sin defaults ni constantes (E3, **cambia la firma
+    en `:shared`**); recálculo en una Edge Function con `:shared` compilado a JS (E4-E6; prueba
+    en la rama `spike/shared-js` del repo Android, sin mergear); E7, el servidor recalcula en
+    cada cierre.
+  - **E0 aplicada en prod:** en `configuracion` ya no escribe cualquier `authenticated`, solo el
+    superadmin. `anon` sigue leyendo (la app lee `configuracion?select=clave,valor`). Migración
+    `20261024010000` del repo Android; panel `cot-admin-next` `5198bd5`, deployado y verificado.
+    Commit `b7ac8e8` del repo Android.
+  **Para iOS (este repo):** nada que hacer ahora. No poner tarifas fijas en Swift: cuando iOS
+  muestre montos, que salgan de `LaudoCalculator` de `:shared` con los valores del servidor
+  (E2/E3 van a definir cómo). La firma de `LaudoCalculator.calcular` va a cambiar en E3 (habrá
+  entrada).
