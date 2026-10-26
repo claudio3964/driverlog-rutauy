@@ -838,3 +838,32 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   muestre montos, que salgan de `LaudoCalculator` de `:shared` con los valores del servidor
   (E2/E3 van a definir cómo). La firma de `LaudoCalculator.calcular` va a cambiar en E3 (habrá
   entrada).
+
+- **25/10/2026 (Windows) — Laudo: tabla `public.valores_laudo` en prod (pieza 3, E1) + RPC de
+  lectura para los clientes.** Migración `20261025010000` del repo Android (`45a2726`),
+  aplicada por Claudio, matriz 65/65.
+  - **Fuente única de los valores del laudo**, por empresa y con vigencia mensual (rige desde el
+    día 1). Ningún documento ni código repite montos: se lee la tabla (regla nueva en
+    `.claude/REGLAS_NEGOCIO.md` del repo Android, "Valores del laudo"). Por eso esta entrada no
+    trae cifras.
+  - **9 claves** (nombres de `configuracion`): `precio_km_conductor`, `viatico_comida`,
+    `tome_cese_km`, `km_extra_directo`, `km_extra_directo_la_pedrera`, `km_hora_guardia_comun`,
+    `km_hora_guardia_especial` (las 7 del laudo del chofer) más `precio_km_guarda` y
+    `viatico_alojamiento` (se cargan, el laudo del chofer hoy no las usa). **Ojo:** el diseño del
+    24/10 decía `precio_km` y `viatico`; quedaron `precio_km_conductor` y `viatico_comida`.
+  - **RPC `valores_laudo(p_fecha date) → jsonb`** (STABLE, se puede llamar por GET): la usa el
+    **chofer con `X-Chofer-Token`** (empresa del token) o el superadmin. Devuelve `{empresa_id,
+    mes, valores: {clave: número}, vigente_desde: {clave: fecha}}` con lo vigente en el mes de
+    `p_fecha`. Errores: sin identidad → 403 `28000`; otra sesión `authenticated` → 42501;
+    `p_fecha` null → 400 `FECHA_INVALIDA`; si falta alguna de las 7 del chofer → **409
+    `VALORES_INCOMPLETOS`** (sin respaldo: el cliente muestra "sin calcular"). La tabla no se
+    lee directo (solo el superadmin, desde el panel).
+  - Escritura solo por `fijar_valor_laudo` (superadmin, meses futuros) o por una corrección
+    auditada en el SQL Editor; historia en `private`.
+  - Reglas confirmadas el 25/10: tome y cese una vez por jornada, al primer movimiento del coche
+    (COT siempre toca Montevideo); el km extra de La Pedrera vale de ida y de vuelta.
+  **Para iOS (este repo):** nada que hacer ahora. Cuando iOS calcule montos, leer los valores
+  con `valores_laudo(p_fecha)` y el token del chofer, no con `configuracion` ni con valores en
+  Swift. Tratar el 409 `VALORES_INCOMPLETOS` como "sin calcular". La app Android todavía lee
+  `configuracion` (migra en E2, sin cambiar el cálculo); la firma de `LaudoCalculator.calcular`
+  cambia en E3 (habrá entrada).
