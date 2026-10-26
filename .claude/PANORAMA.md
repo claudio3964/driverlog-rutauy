@@ -900,5 +900,6 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `DashboardView.swift:242` (`calcular(jornada:, laudoKm: 8.0122, montoViatico: 455.26)`) **deja
   de compilar**. Reemplazarlo por los valores de `valores_laudo` según las reglas de cliente de la
   entrada anterior (con `ValoresLaudo`) y `zonaId: "America/Montevideo"`; correr los tests de
-  `:shared` en los targets iOS. En E3b `calcular` va a pasar a devolver "sin calcular" (habrá
-  entrada).
+  `:shared` en los targets iOS. En E3b "sin calcular" lo decide el cliente antes de llamar: sin
+  `ValoresLaudo` (`desdeMapa` da null) no se llama a `calcular` y no se muestra ningún total. **La
+  firma de `calcular` no cambia en E3b** (habrá entrada con lo que cambie en la app y el panel).
