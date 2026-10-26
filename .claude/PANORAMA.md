@@ -867,3 +867,20 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   Swift. Tratar el 409 `VALORES_INCOMPLETOS` como "sin calcular". La app Android todavía lee
   `configuracion` (migra en E2, sin cambiar el cálculo); la firma de `LaudoCalculator.calcular`
   cambia en E3 (habrá entrada).
+
+- 26/10 (Windows, Android `main`) — **Pieza 3, E2: la app Android lee `valores_laudo` (merge
+  `fc44e4c`).** Sin cambios en Supabase ni en `:shared`. Android ya no lee `configuracion`: pide
+  `valores_laudo(p_fecha)` con el `X-Chofer-Token` y guarda la respuesta por mes en Room (una fila
+  por mes y clave). Reglas de cliente, para que iOS haga lo mismo:
+  - Pedir el **mes en curso y el siguiente** (`fijar_valor_laudo` solo carga meses futuros, así
+    el cambio de mes sin señal ya tiene el valor) y el mes de la jornada abierta. Refrescar cada
+    6 h (una corrección del mes en curso llega en el día); si no hay nada guardado, pedir en el
+    primer arranque con señal; un intento fallido no se repite antes de 15 min.
+  - Un 409 `VALORES_INCOMPLETOS`, un 28000 o un error de red **no pisan lo guardado**. Una
+    respuesta sin alguna de las 7 claves del chofer se descarta entera.
+  - Para calcular: los valores del mes de la jornada (`fecha`); si ese mes no está, los del último
+    mes guardado anterior. Si nunca se leyó nada, Android usa todavía un respaldo fijo; en E3 eso
+    pasa a "sin calcular" (sin monto).
+  - Confirmado en campo: el endpoint público devuelve el objeto (`jsonb`), no un array.
+  **Para iOS (este repo):** nada que hacer ahora; cuando iOS calcule montos, seguir estas reglas.
+  La firma de `LaudoCalculator.calcular` cambia en E3 (habrá entrada).
