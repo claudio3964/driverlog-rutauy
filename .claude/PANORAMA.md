@@ -884,3 +884,21 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   - Confirmado en campo: el endpoint público devuelve el objeto (`jsonb`), no un array.
   **Para iOS (este repo):** nada que hacer ahora; cuando iOS calcule montos, seguir estas reglas.
   La firma de `LaudoCalculator.calcular` cambia en E3 (habrá entrada).
+
+- 26/10 (Windows, Android `main`) — **Pieza 3, E3a: `LaudoCalculator` de `:shared` sin constantes
+  (merge `f8f56aa`). CAMBIA LA FIRMA.** Sin cambios en Supabase.
+  - **`LaudoCalculator.calcular(jornada, valores: ValoresLaudo, zonaId: String)`**, sin defaults.
+    `ValoresLaudo` (nuevo en `:shared`) trae las 7 claves del chofer; `ValoresLaudo.desdeMapa(map)`
+    devuelve null si falta alguna (ahí no se calcula). `zonaId` es el id IANA de la zona de las
+    franjas del viático: **`"America/Montevideo"` fijo para COT, nunca la del dispositivo.** Va
+    como texto para no exponer kotlinx-datetime. `VERSION_CALCULO = 1`.
+  - **Reglas nuevas:** acoplado del Chuy = 0 si es origen **o** destino (gana sobre La Pedrera);
+    La Pedrera vale de ida o de vuelta; **DIRECTÍSIMO (con o sin tilde) se paga igual que
+    DIRECTO**. Los km/h de guardia, el tome y cese, el acoplado, el precio y el viático salen de
+    `valores_laudo`.
+  **Para iOS (este repo), E3e en la Mac:** al regenerar el `.xcframework`,
+  `DashboardView.swift:242` (`calcular(jornada:, laudoKm: 8.0122, montoViatico: 455.26)`) **deja
+  de compilar**. Reemplazarlo por los valores de `valores_laudo` según las reglas de cliente de la
+  entrada anterior (con `ValoresLaudo`) y `zonaId: "America/Montevideo"`; correr los tests de
+  `:shared` en los targets iOS. En E3b `calcular` va a pasar a devolver "sin calcular" (habrá
+  entrada).
