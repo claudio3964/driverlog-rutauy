@@ -903,3 +903,25 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   `:shared` en los targets iOS. En E3b "sin calcular" lo decide el cliente antes de llamar: sin
   `ValoresLaudo` (`desdeMapa` da null) no se llama a `calcular` y no se muestra ningún total. **La
   firma de `calcular` no cambia en E3b** (habrá entrada con lo que cambie en la app y el panel).
+
+- 27/10 (Windows, Supabase prod + Android en rama) — **`cerrar_jornada` CAMBIÓ EN PROD
+  (migración `20261027010000`, commit `1b75a45` del repo Android).** Ahora es idempotente y
+  responde qué pasó, para que un cierre hecho sin red se pueda reintentar sin pisar nada.
+  - **Firma:** `cerrar_jornada(p_order_number, p_totals_snapshot, p_closed_at, p_ids_conocidos
+    jsonb DEFAULT NULL) RETURNS jsonb {resultado}` (antes era `void`; la firma de 3 parámetros
+    se borró, pero una llamada con 3 sigue resolviendo por el default). `p_ids_conocidos` es el
+    array con los ids de todos los viajes y guardias que el cliente tiene de esa jornada.
+  - **`resultado`:**
+    - `cerrada` / `ya_cerrada` (mismo `cerradoAt`): ok.
+    - `cerrada_distinta` (+ `cerrado_at_servidor`): no pisa; el cliente toma el cierre del servidor.
+    - `borrada`: no revive la jornada.
+    - `reabierta_despues`: un admin deshizo ese cierre, anotado en `data.cierres_revertidos`.
+    - `actividad_posterior` (+ `ids`): el servidor tiene viajes o guardias que el cliente no
+      mandó; **no cierra** y el cliente avisa al chofer.
+  - **Errores:** 400 nuevos si `p_closed_at <= 0` o si `p_ids_conocidos` no es un array.
+  - **Android (el otro repo):** la regla de qué hacer con cada respuesta está en `:shared`
+    (`CierreJornadaRemoto`), pero en la rama `feat/cierre-sin-red`, **sin merge a `main`**.
+    Habrá entrada al mergear, después del campo del 28 al 31/10.
+  **Para iOS (este repo):** hoy iOS no llama a `cerrar_jornada`, así que no hay nada roto. Cuando
+  cierre jornadas: mandar `p_ids_conocidos`, leer `resultado` y usar `CierreJornadaRemoto` de
+  `:shared` (cuando esté en `main`) en vez de reinterpretar las respuestas.
