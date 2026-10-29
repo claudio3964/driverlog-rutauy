@@ -925,3 +925,22 @@ registrado dentro del frente que lo dispara (Android, panel, o `:shared`), no en
   **Para iOS (este repo):** hoy iOS no llama a `cerrar_jornada`, así que no hay nada roto. Cuando
   cierre jornadas: mandar `p_ids_conocidos`, leer `resultado` y usar `CierreJornadaRemoto` de
   `:shared` (cuando esté en `main`) en vez de reinterpretar las respuestas.
+
+- 29/10 (Windows, Android en rama) — **`:shared`: `CierreJornadaRemoto` cambia el contrato
+  (`e24e54f` en `feat/cierre-sin-red` del repo Android, sin merge a `main`).** Sin cambios en Supabase.
+  - **`42501` ahora es `SIN_SESION`** (antes `RECHAZO` → error técnico), con el mismo trato que
+    `28000`: reintento con refresh del token y tope de 5 respuestas seguidas. `42501` sale de
+    `private.autorizar_jornada` cuando el llamador no es el chofer de la jornada (sin token de
+    chofer, legajo o empresa distintos): es identidad, no un rechazo del cierre.
+  - **`Accion.ERROR_SESION` nueva:** `decidir(SIN_SESION, >= tope)` la devuelve en vez de
+    `ERROR_TECNICO`. El cliente muestra un aviso de sesión (volver a entrar y reintentar), no
+    "avisá a Tránsito". Un `when` sobre `Accion` tiene que cubrir el caso nuevo.
+  - **Reglas de cliente (Android, `2ea3d9b`):** los cierres pendientes y los avisos son **solo
+    del legajo logueado**; el cierre de una jornada de otro legajo no se manda (queda pendiente
+    hasta que entre su legajo). Un cierre en error técnico o de sesión tiene un "Reintentar"
+    manual (vuelve a pendiente con las rachas en 0); `error_actividad` no, lo resuelve Tránsito.
+    Motivo: el 28/10 el celu Android mandó el cierre de `4112-20260916` con la sesión del
+    9999999, recibió 401 `42501` y lo dejó en error sin salida.
+  **Para iOS (este repo):** nada roto hoy (iOS no cierra jornadas). Cuando cierre: filtrar los
+  cierres por el legajo de la sesión, tratar `ERROR_SESION` con su propio aviso y usar
+  `CierreJornadaRemoto` de `:shared` (cuando esté en `main`; habrá entrada al mergear).
